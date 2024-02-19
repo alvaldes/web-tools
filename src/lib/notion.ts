@@ -1,5 +1,5 @@
 import { tagsItems } from "./toolStore";
-import type Tag from "@/components/Tag.astro";
+import type Tag from "@/components/Tag";
 
 export type WebTools = {
   id: string;
@@ -23,7 +23,6 @@ async function fetchNotionApi(database: string, body: any): Promise<any> {
     Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
     "Notion-Version": "2022-06-28",
     "Content-Type": "application/json",
-    Origin: "http://localhost:4321",
   });
   const endpoint = `https://api.notion.com/v1/databases/${database}/query`;
   let dataBody: any = {
@@ -45,7 +44,6 @@ async function fetchNotionApi(database: string, body: any): Promise<any> {
     headers,
     body: JSON.stringify(dataBody),
   });
-  console.log("🚀 ~ response:", response);
   if (!response.ok) {
     throw new Error(`Notion API request failed: ${response.statusText}`);
   }
@@ -105,7 +103,6 @@ export async function searchTools(
   }
   try {
     const pages = await fetchNotionApi(toolsApiKey, filter);
-    console.log("🚀 ~ pages:", pages);
     const tools = pages.results.map((page: any) => {
       return {
         id: (page as any).id,
@@ -115,7 +112,6 @@ export async function searchTools(
         img: (page as any).properties.Image.url,
       };
     });
-    console.log("🚀 ~ tools:", tools);
 
     return tools;
   } catch (error) {

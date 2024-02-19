@@ -1,16 +1,22 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
-import { isLoading, saveTagItem, tagsItems } from "@/lib/toolStore";
+import {
+  isLoading,
+  saveTagItem,
+  saveToolItem,
+  tagsItems,
+  toolItems,
+} from "@/lib/toolStore";
 import { getTools, searchTools, type Tags } from "@/lib/notion";
 import Filter from "./Filter";
+import type { FunctionalComponent } from "preact";
 
-export default function Search({ fetchTags }: { fetchTags: Tags[] }) {
+const Search: FunctionalComponent = () => {
   const [isDropOpen, setIsDropOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [searchFilter, setSearchFilter] = useState<string>("");
   const $isLoading = useStore(isLoading);
   const $tags = useStore(tagsItems);
-  saveTagItem(fetchTags);
 
   const toogleDropdown = () => {
     setIsDropOpen(!isDropOpen);
@@ -25,7 +31,6 @@ export default function Search({ fetchTags }: { fetchTags: Tags[] }) {
       let draft: Set<string> = new Set([...categoryFilter, tag.id]);
       setCategoryFilter([...draft]);
     }
-    setIsDropOpen(false);
   };
 
   const removeFilter = (id: string) => {
@@ -46,11 +51,62 @@ export default function Search({ fetchTags }: { fetchTags: Tags[] }) {
 
   const search = async (e: any) => {
     e.preventDefault();
-    console.log("🚀 ~ searchFilter:", searchFilter);
-    let draft = await getTools();
-    console.log("🚀 ~ draft:", draft);
-    // setCategoryFilter([...draft]);
+    let draft = await fetch("/api/tools.json", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tags: categoryFilter,
+        query: searchFilter,
+      }),
+    }).then((res) => res.json());
+    saveToolItem(draft);
   };
+
+  useEffect(() => {
+    const fetchTools = async () => {
+      try {
+        const res = await fetch("/api/tools.json", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tags: [],
+            query: "",
+          }),
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        saveToolItem(data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchTools();
+
+    const fetchTags = async () => {
+      try {
+        const res = await fetch("/api/tags.json", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        saveTagItem(data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchTags();
+  }, []);
 
   return (
     <>
@@ -70,7 +126,7 @@ export default function Search({ fetchTags }: { fetchTags: Tags[] }) {
           </label>
           <button
             id="dropdown-button"
-            class="flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-900 bg-gray-100 border border-gray-300 rounded-s-lg hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700 dark:text-white dark:border-gray-600"
+            class="flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center border rounded-s-lg focus:ring-2 focus:outline-none bg-gray-700 hover:bg-gray-600 focus:ring-gray-700 text-white border-gray-600"
             type="button"
             onClick={toogleDropdown}
           >
@@ -93,16 +149,16 @@ export default function Search({ fetchTags }: { fetchTags: Tags[] }) {
           </button>
           <div
             id="dropdown"
-            class={`absolute mt-11 z-20 ${
+            class={`absolute mt-12 z-20 ${
               isDropOpen ? "" : `hidden`
             } bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700`}
           >
-            <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+            <ul class="py-2 text-sm text-gray-200">
               {Object.keys($tags).map((tag) => (
                 <li>
                   <button
                     type="button"
-                    class="inline-flex w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+                    class="inline-flex w-full px-4 py-2 hover:bg-gray-600 hover:text-white"
                     onClick={() => selectCategory($tags[tag])}
                   >
                     <input
@@ -120,7 +176,7 @@ export default function Search({ fetchTags }: { fetchTags: Tags[] }) {
             <input
               type="search"
               id="search-dropdown"
-              class="block p-2.5 w-full z-20 text-sm text-gray-900 bg-gray-50 rounded-e-lg border-s-gray-50 border-s-2 border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-s-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-blue-500"
+              class="block p-2.5 w-full z-20 text-sm rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white"
               placeholder="Search Mockups, Logos, Design Templates..."
               required
               value={searchFilter}
@@ -129,7 +185,7 @@ export default function Search({ fetchTags }: { fetchTags: Tags[] }) {
             <button
               type="button"
               onClick={(e) => search(e)}
-              class="absolute top-0 end-0 p-2.5 text-sm font-medium h-full text-white bg-blue-700 rounded-e-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+              class="absolute top-0 end-0 p-2.5 text-sm font-medium h-full text-white rounded-e-lg border border-blue-700 focus:ring-2 focus:outline-none bg-blue-600 hover:bg-blue-700 focus:ring-blue-800"
             >
               <svg
                 class="w-4 h-4"
@@ -158,4 +214,6 @@ export default function Search({ fetchTags }: { fetchTags: Tags[] }) {
       </form>
     </>
   );
-}
+};
+
+export default Search;

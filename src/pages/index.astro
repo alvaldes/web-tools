@@ -1,17 +1,15 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Card from "@/components/Card.astro";
+import Gallery from "@/components/Gallery";
 import Search from "@/components/Search.tsx";
 import Logo from "@/components/Logo.astro";
 import Pagination from "@/components/Pagination.astro";
-import { getTags, getTools } from "@/lib/notion";
-
-const tags = await getTags();
-const tools = await getTools();
 ---
 
 <Layout title="ωεβ Τσφδ">
-  <main class="container mx-auto flex flex-col items-center">
+  <main
+    class="container mx-auto px-0 md:px-4 xl:px-16 2xl:px-40 flex flex-col items-center"
+  >
     <div class="absolute flex justify-center mt-4">
       <Logo class="size-32 text-black/45 -z-20" />
     </div>
@@ -29,22 +27,8 @@ const tools = await getTools();
       everything you need to bring your projects to life, right at your
       fingertips
     </p>
-    <Search client:load fetchTags={tags} />
-    <div
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
-    >
-      {
-        tools.map((item) => (
-          <Card
-            id={item.id}
-            img={item.img}
-            title={item.title}
-            url={item.url}
-            tags={item.tags}
-          />
-        ))
-      }
-    </div>
+    <Search client:load />
+    <Gallery client:load />
     <Pagination />
   </main>
 </Layout>

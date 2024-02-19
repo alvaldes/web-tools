@@ -8,6 +8,7 @@ export const toolItems = map<Record<string, WebTools>>({});
 export const tagsItems = map<Record<string, Tags>>({});
 
 export function saveToolItem(items: WebTools[]) {
+  toolItems.set({});
   items.map((item) => {
     toolItems.setKey(item.id, item);
   });
