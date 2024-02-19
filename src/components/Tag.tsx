@@ -14,7 +14,7 @@ const Tag = (props: Props) => {
 
   return (
     <span
-      class={`text-xs font-medium me-2 px-2.5 py-0.5 rounded-full ${
+      className={`text-xs font-medium me-2 px-2.5 py-0.5 rounded-full ${
         colorVariants[color as keyof typeof colorVariants]
       }`}
     >

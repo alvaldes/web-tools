@@ -1,6 +1,3 @@
-import { tagsItems } from "./toolStore";
-import type Tag from "@/components/Tag";
-
 export type WebTools = {
   id: string;
   title: string;
@@ -54,9 +51,9 @@ export async function getTags(): Promise<Tags[]> {
   const pages = await fetchNotionApi(tagsApiKey, null);
   const tags = pages.results.map((page: any) => {
     return {
-      id: (page as any).id,
-      name: (page as any).properties.Name.title[0].text.content,
-      color: (page as any).properties.Color.rich_text[0].plain_text,
+      id: page.id,
+      name: page.properties.Name.title[0].text.content,
+      color: page.properties.Color.rich_text[0].plain_text,
     };
   });
   return tags;
@@ -66,11 +63,11 @@ export async function getTools(): Promise<WebTools[]> {
   const pages = await fetchNotionApi(toolsApiKey, null);
   const tools = pages.results.map((page: any) => {
     return {
-      id: (page as any).id,
-      title: (page as any).properties.Name.title[0].text.content,
-      url: (page as any).properties.URL.url,
-      tags: (page as any).properties.Tags.relation.map((tag: any) => tag.id),
-      img: (page as any).properties.Image.url,
+      id: page.id,
+      title: page.properties.Name.title[0].text.content,
+      url: page.properties.URL.url,
+      tags: page.properties.Tags.relation.map((tag: any) => tag.id),
+      img: page.properties.Image.url,
     };
   });
   return tools;
@@ -101,22 +98,18 @@ export async function searchTools(
       or: draft,
     });
   }
-  try {
-    const pages = await fetchNotionApi(toolsApiKey, filter);
-    const tools = pages.results.map((page: any) => {
-      return {
-        id: (page as any).id,
-        title: (page as any).properties.Name.title[0].text.content,
-        url: (page as any).properties.URL.url,
-        tags: (page as any).properties.Tags.relation.map((tag: any) => tag.id),
-        img: (page as any).properties.Image.url,
-      };
-    });
+  const pages = await fetchNotionApi(toolsApiKey, filter);
+  const tools = pages.results.map((page: any) => {
+    return {
+      id: page.id,
+      title: page.properties.Name.title[0].text.content,
+      url: page.properties.URL.url,
+      tags: page.properties.Tags.relation.map((tag: any) => tag.id),
+      img: page.properties.Image.url,
+    };
+  });
 
-    return tools;
-  } catch (error) {
-    throw error;
-  }
+  return tools;
 }
 
 export default {
