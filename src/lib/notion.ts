@@ -112,8 +112,41 @@ export async function searchTools(
   return tools;
 }
 
+export async function getPage(id: string) {
+  const response = await fetch("https://api.notion.com/v1/pages/" + id, {
+    method: "GET",
+    headers: {
+      Authorization: "Bearer " + import.meta.env.PUBLIC_NOTION_KEY,
+      "Notion-Version": "2022-06-28",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Notion API request failed: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function getBlocks(id: string) {
+  const response = await fetch(
+    "https://api.notion.com/v1/blocks/" + id + "/children?page_size=100",
+    {
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + import.meta.env.PUBLIC_NOTION_KEY,
+        "Notion-Version": "2022-06-28",
+      },
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`Notion API request failed: ${response.statusText}`);
+  }
+  return response.json();
+}
+
 export default {
   getTags,
   getTools,
   searchTools,
+  getPage,
+  getBlocks,
 };

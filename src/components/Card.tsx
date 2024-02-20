@@ -14,19 +14,18 @@ const Card = (props: Props) => {
   }
   return (
     <div class="w-full max-w-sm border rounded-lg shadow bg-gray-800 border-gray-700">
-      <a href={`/${props.id}`}>
+      <picture class="aspect-square w-full h-auto flex-none">
         <img
           class="py-4 rounded-t-lg aspect-auto w-[18rem] h-64 m-auto object-contain"
           src={props.img}
-          alt="product image"
+          alt="tool image"
+          data-transition-name={`tool ${props.id} image`}
         />
-      </a>
+      </picture>
       <div class="px-5 pb-5 flex flex-col justify-between">
-        <a href={`/${props.id}`} class="min-h-16">
-          <h5 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
-            {props.title}
-          </h5>
-        </a>
+        <h5 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
+          {props.title}
+        </h5>
         <div class="mt-auto">
           <div class="flex items-center mt-2.5 mb-5">
             {props.tags.map((item) => (

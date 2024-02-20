@@ -15,7 +15,12 @@ export function saveToolItem(items: WebTools[]) {
 }
 
 export function saveTagItem(items: Tags[]) {
+  tagsItems.set({});
   items.map((item) => {
     tagsItems.setKey(item.id, item);
   });
+}
+
+export function saveIsLoading(value: boolean) {
+  isLoading.set(value);
 }
