@@ -5,7 +5,6 @@ import {
   saveTagItem,
   saveToolItem,
   tagsItems,
-  toolItems,
 } from "@/lib/toolStore";
 import { type Tags } from "@/lib/notion";
 import Filter from "./Filter";

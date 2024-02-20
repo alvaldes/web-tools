@@ -1,4 +1,4 @@
-import { getPage, getTools, searchTools } from "@/lib/notion";
+import { getTools, searchTools } from "@/lib/notion";
 import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ request }) => {

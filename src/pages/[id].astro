@@ -1,6 +1,5 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Tag from "../components/Tag";
 import { getPage, getTags, getBlocks } from "../lib/notion";
 import { colorVariants } from "../lib/utils";
 
@@ -70,13 +69,13 @@ const { id } = Astro.params;
 if (!id) {
   throw new Error("ID parameter is missing");
 }
-const tool = await getPage(id);
+const tool: NotionPage = await getPage(id);
 const tags = await getTags();
 const blocks = await getBlocks(id);
 let tagsList: any[] = [];
 
 const loadTags = async () => {
-  tool.properties.Tags.relation.map((t) => {
+  tool.properties.Tags.relation.map((t: any) => {
     tagsList = [...tagsList, ...tags.filter((x) => x.id === t.id)];
   });
 };
@@ -206,7 +205,7 @@ console.log(blocks.results[2].bulleted_list_item.rich_text[0].plain_text);
         <ul class="mt-2 space-y-1 list-disc list-inside text-gray-400">
           {
             blocks.results.map(
-              (block, index) =>
+              (block: any, index: number) =>
                 index > 1 && (
                   <li>{block.bulleted_list_item.rich_text[0].plain_text}</li>
                 )

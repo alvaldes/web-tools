@@ -1,7 +1,7 @@
 import { getTags } from "@/lib/notion";
 import type { APIRoute } from "astro";
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async () => {
   const res = await getTags();
   if (!res) {
     return new Response(null, {
