@@ -8,11 +8,13 @@ const Gallery = () => {
   const $tools = useStore(toolItems);
   const $isLoading = useStore(isLoading);
   const [toolsItems, setToolsItems] = useState(Object.values($tools));
+  const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
 
   useEffect(() => {
     setToolsItems(Object.values($tools));
+    setTotalItems(Object.values($tools).length);
   }, [$tools]);
 
   const changeItemsPerPage = (itemsPerPage: number) => {
@@ -22,13 +24,12 @@ const Gallery = () => {
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const totalItems = toolsItems.length;
   const currentItems = toolsItems.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <>
       {$isLoading ? (
-        <div className="text-center">
+        <section className="text-center">
           <div>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -63,7 +64,22 @@ const Gallery = () => {
             </svg>
             <span className="sr-only">Loading...</span>
           </div>
-        </div>
+        </section>
+      ) : totalItems === 0 ? (
+        <section
+          className={`flex justify-center flex-col max-w-[28rem] px-6 h-full my-auto`}
+        >
+          <img
+            src="notfound.svg"
+            alt="Result Not Found"
+            className="mx-auto w-fit h-52 sm:h-60 opacity-65"
+          />
+          <p
+            className={`text-xl sm:text-3xl font-thin text-center mt-2 tracking-wide text-pretty`}
+          >
+            Oops! Couldn't find any results matching your search
+          </p>
+        </section>
       ) : (
         <section>
           <Pagination
