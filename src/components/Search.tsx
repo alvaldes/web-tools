@@ -14,6 +14,7 @@ const Search: FunctionalComponent = () => {
   const [isDropOpen, setIsDropOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [searchFilter, setSearchFilter] = useState<string>("");
+  const [placeholder, setPlaceholder] = useState("Search");
   const [isLoading, setIsLoading] = useState(true);
   const $tags = useStore(tagsItems);
 
@@ -57,52 +58,63 @@ const Search: FunctionalComponent = () => {
     saveIsLoading(false);
   };
 
-  useEffect(() => {
-    const fetchTools = async () => {
-      try {
-        setIsLoading(true);
-        saveIsLoading(true);
-        const res = await fetch("/api/tools.json", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tags: [],
-            query: "",
-          }),
-        });
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        const data = await res.json();
-        saveToolItem(data);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchTools();
+  const handleResize = () => {
+    if (window.innerWidth <= 550) {
+      setPlaceholder("Search Colors, News...");
+    } else {
+      setPlaceholder("Search Colors, News, Designs, and more...");
+    }
+  };
 
-    const fetchTags = async () => {
-      try {
-        setIsLoading(true);
-        saveIsLoading(true);
-        const res = await fetch("/api/tags.json", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        const data = await res.json();
-        saveTagItem(data);
-      } catch (e) {
-        console.error(e);
+  const fetchTools = async () => {
+    try {
+      setIsLoading(true);
+      saveIsLoading(true);
+      const res = await fetch("/api/tools.json", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tags: [],
+          query: "",
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-    };
+      const data = await res.json();
+      saveToolItem(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      setIsLoading(true);
+      saveIsLoading(true);
+      const res = await fetch("/api/tags.json", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      saveTagItem(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  useEffect(() => {
+    fetchTools();
     fetchTags();
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -186,7 +198,7 @@ const Search: FunctionalComponent = () => {
               type="text"
               id="search-dropdown"
               className="block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white"
-              placeholder="Search Colors, Logos, Designs..."
+              placeholder={placeholder}
               required
               value={searchFilter}
               onChange={(e: any) => setSearchFilter(e.target?.value ?? "")}

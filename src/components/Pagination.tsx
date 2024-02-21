@@ -64,7 +64,7 @@ const Pagination = ({
           }
           value={itemsPerPage}
         >
-          <option value="1">1 items per page</option>
+          <option value="1">1 item per page</option>
           <option value="2">2 items per page</option>
           <option value="4">4 items per page</option>
           <option value="8">8 items per page</option>
