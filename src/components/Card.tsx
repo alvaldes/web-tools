@@ -13,33 +13,32 @@ const Card = (props: Props) => {
     props.title = props.title.substring(0, 75) + "...";
   }
   return (
-    <div class="w-full max-w-sm border rounded-lg shadow bg-gray-800 border-gray-700">
-      <picture class="aspect-square w-full h-auto flex-none">
+    <div className="w-full max-w-sm border rounded-lg shadow bg-gray-800 border-gray-700">
+      <picture className="aspect-video w-full h-auto flex-none">
         <img
-          class="py-4 rounded-t-lg aspect-auto w-[18rem] h-64 m-auto object-contain"
+          className="rounded-t-lg aspect-video w-full h-48 m-auto object-cover"
           src={props.img}
-          alt="tool image"
-          data-transition-name={`tool ${props.id} image`}
+          alt={`${props.img} tool`}
         />
       </picture>
-      <div class="px-5 pb-5 flex flex-col justify-between">
-        <h5 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
+      <div className="mx-5 mt-3 mb-5 flex flex-col justify-between">
+        <h5 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
           {props.title}
         </h5>
-        <div class="mt-auto">
-          <div class="flex items-center mt-2.5 mb-5">
+        <div className="mt-auto">
+          <div className="flex items-center mt-2.5 mb-5">
             {props.tags.map((item) => (
               <Tag id={item} />
             ))}
           </div>
-          <div class="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <a
               href={props.url}
-              class="inline-flex items-center text-blue-600 hover:underline"
+              className="inline-flex items-center text-blue-600 hover:underline"
             >
               Visit
               <svg
-                class="w-3 h-3 ms-2.5 rtl:rotate-[270deg]"
+                className="w-3 h-3 ms-2.5 rtl:rotate-[270deg]"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -56,11 +55,11 @@ const Card = (props: Props) => {
             </a>
             <a
               href={`/${props.id}`}
-              class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
             >
               Read More
               <svg
-                class="rtl:rotate-180 w-3.5 h-3.5 ms-2"
+                className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"

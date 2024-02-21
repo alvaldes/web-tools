@@ -79,17 +79,14 @@ const Search: FunctionalComponent = () => {
         saveToolItem(data);
       } catch (e) {
         console.error(e);
-      } finally {
-        setIsLoading(false);
-        saveIsLoading(false);
       }
     };
     fetchTools();
 
     const fetchTags = async () => {
       try {
-        setIsLoading(false);
-        saveIsLoading(false);
+        setIsLoading(true);
+        saveIsLoading(true);
         const res = await fetch("/api/tags.json", {
           method: "GET",
           headers: {
@@ -103,13 +100,17 @@ const Search: FunctionalComponent = () => {
         saveTagItem(data);
       } catch (e) {
         console.error(e);
-      } finally {
-        setIsLoading(false);
-        saveIsLoading(false);
       }
     };
     fetchTags();
   }, []);
+
+  useEffect(() => {
+    if (Object.keys($tags).length > 0) {
+      setIsLoading(false);
+      saveIsLoading(false);
+    }
+  }, [$tags]);
 
   return (
     <>
@@ -121,7 +122,7 @@ const Search: FunctionalComponent = () => {
           type="button"
         ></button>
       )}
-      <form className="w-[80%] my-8">
+      <form className=" w-[90%] sm:w-[80%] mt-8 mb-4">
         <div className="flex">
           <label
             htmlFor="search-dropdown"
@@ -132,7 +133,7 @@ const Search: FunctionalComponent = () => {
           <button
             id="dropdown-button"
             disabled={Object.keys($tags).length == 0}
-            className={`flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center border rounded-s-lg focus:ring-2 focus:outline-none bg-gray-700 hover:bg-gray-600 focus:ring-gray-700 text-white border-gray-600 ${
+            className={`flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center border rounded-s-lg rounded-e-none focus:ring-2 focus:outline-none bg-gray-700 hover:bg-gray-600 focus:ring-gray-700 text-white border-gray-600 ${
               Object.keys($tags).length == 0 ? "cursor-wait" : "cursor-pointer"
             }`}
             type="button"
@@ -182,10 +183,10 @@ const Search: FunctionalComponent = () => {
           </div>
           <div className="relative w-full">
             <input
-              type="search"
+              type="text"
               id="search-dropdown"
-              className="block p-2.5 w-full z-20 text-sm rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white"
-              placeholder="Search Mockups, Logos, Design Templates..."
+              className="block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white"
+              placeholder="Search Colors, Logos, Designs..."
               required
               value={searchFilter}
               onChange={(e: any) => setSearchFilter(e.target?.value ?? "")}

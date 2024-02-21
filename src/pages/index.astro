@@ -3,7 +3,6 @@ import Layout from "@/layouts/Layout.astro";
 import Gallery from "@/components/Gallery";
 import Search from "@/components/Search.tsx";
 import Logo from "@/components/Logo.astro";
-import Pagination from "@/components/Pagination.astro";
 ---
 
 <Layout title="ωεβ Τσφδ">
@@ -11,12 +10,12 @@ import Pagination from "@/components/Pagination.astro";
     class="container mx-auto px-0 md:px-4 xl:px-16 2xl:px-40 flex flex-col items-center"
   >
     <div class="absolute flex justify-center mt-4">
-      <Logo class="size-32 text-black/45 -z-20" />
+      <Logo class="size-28 text-black/45 -z-20" />
     </div>
-    <h1 class="text-5xl text-balance text-center z-20 my-10">
+    <h1 class="text-5xl text-balance text-center z-20 my-6 sm:my-10">
       Welcome to <span class="text-pink-700">ωεβ Τσφδ</span>
     </h1>
-    <p class="text-pretty my-6 z-20 text-xl text-center">
+    <p class="text-pretty mt-0 sm:mt-4 px-2 sm:px-8 z-20 text-xl text-center">
       Web Tools is a comprehensive collection of web resources and tools curated
       to empower developers worldwide
     </p>
@@ -29,6 +28,5 @@ import Pagination from "@/components/Pagination.astro";
     </p>
     <Search client:load />
     <Gallery client:load />
-    <Pagination />
   </main>
 </Layout>
