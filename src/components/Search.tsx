@@ -197,7 +197,7 @@ const Search: FunctionalComponent = () => {
             <input
               type="text"
               id="search-dropdown"
-              className="block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white"
+              className="block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white"
               placeholder={placeholder}
               required
               value={searchFilter}

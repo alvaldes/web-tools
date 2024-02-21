@@ -34,7 +34,7 @@ const Card = (props: Props) => {
           <div className="flex items-center justify-between">
             <a
               href={props.url}
-              className="inline-flex items-center text-blue-600 hover:underline"
+              className="inline-flex items-center text-blue-600 hover:underline focus:ring-2 focus:outline-none"
             >
               Visit
               <svg

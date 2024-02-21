@@ -32,7 +32,7 @@ const Pagination = ({
       </span>
       <div className="inline-flex mt-2 xs:mt-0">
         <button
-          className={`flex items-center justify-center px-3 h-8 text-sm font-medium rounded-s ${
+          className={`flex items-center justify-center mr-0.5 px-3 h-8 text-sm font-medium rounded-s focus:ring-2 focus:outline-none ${
             currentPage === 1
               ? "bg-gray-900 border-gray-800 text-gray-500 cursor-not-allowed"
               : "bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white cursor-pointer"
@@ -58,7 +58,7 @@ const Pagination = ({
           Prev
         </button>
         <select
-          className="flex items-center justify-center px-3 h-8 text-sm font-medium rounded-s bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white cursor-pointer"
+          className="flex items-center justify-center px-1 h-8 text-sm font-medium bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white cursor-pointer focus:ring-2 focus:outline-none"
           onChange={(e) =>
             setItemsPerPage(parseInt((e.target as HTMLSelectElement).value))
           }
@@ -70,7 +70,7 @@ const Pagination = ({
           <option value="8">8 items per page</option>
         </select>
         <button
-          className={`flex items-center justify-center px-3 h-8 text-sm font-medium border-0 border-s rounded-e ${
+          className={`flex items-center justify-center ml-0.5 px-3 h-8 text-sm font-medium rounded-e focus:ring-2 focus:outline-none ${
             currentPage === Math.ceil(totalItems / itemsPerPage)
               ? "bg-gray-900 border-gray-800 text-gray-500 cursor-not-allowed"
               : "bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white cursor-pointer"
