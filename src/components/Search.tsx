@@ -148,9 +148,11 @@ const Search: FunctionalComponent = () => {
           </label>
           <button
             id="dropdown-button"
-            disabled={Object.keys($tags).length == 0}
-            className={`flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center border rounded-s-lg rounded-e-none focus:ring-2 focus:outline-none bg-gray-700 hover:bg-gray-600 focus:ring-gray-700 text-white border-gray-600 ${
-              Object.keys($tags).length == 0 ? "cursor-wait" : "cursor-pointer"
+            disabled={Object.keys($tags).length == 0 || isLoading}
+            className={`flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center border rounded-s-lg rounded-e-none focus:ring-2 focus:outline-none bg-gray-700 focus:ring-gray-700 text-white border-gray-600 ${
+              Object.keys($tags).length == 0 || isLoading
+                ? "cursor-wait"
+                : "cursor-pointer hover:bg-gray-600"
             }`}
             type="button"
             onClick={toogleDropdown}
@@ -201,9 +203,12 @@ const Search: FunctionalComponent = () => {
             <input
               type="text"
               id="search-dropdown"
-              className="block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white"
+              className={`block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white ${
+                isLoading ? "cursor-wait" : "cursor-text"
+              }`}
               placeholder={placeholder}
               required
+              disabled={isLoading}
               value={searchFilter}
               onChange={(e: any) => setSearchFilter(e.target?.value ?? "")}
             />

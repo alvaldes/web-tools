@@ -30,39 +30,33 @@ const Gallery = () => {
   return (
     <>
       {$isLoading ? (
-        <section className="text-center flex justify-center flex-col max-w-[28rem] px-6 h-full my-auto">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14rem"
-            height="14rem"
-            viewBox="0 0 24 24"
-          >
-            <circle cx={4} cy={12} r={1.5} fill="currentColor">
-              <animate
-                attributeName="r"
-                dur="0.75s"
-                repeatCount="indefinite"
-                values="1.5;3;1.5"
-              ></animate>
-            </circle>
-            <circle cx={12} cy={12} r={3} fill="currentColor">
-              <animate
-                attributeName="r"
-                dur="0.75s"
-                repeatCount="indefinite"
-                values="3;1.5;3"
-              ></animate>
-            </circle>
-            <circle cx={20} cy={12} r={1.5} fill="currentColor">
-              <animate
-                attributeName="r"
-                dur="0.75s"
-                repeatCount="indefinite"
-                values="1.5;3;1.5"
-              ></animate>
-            </circle>
-          </svg>
-          <span className="sr-only">Loading...</span>
+        <section
+          className={`grid grid-cols-1 md:grid-cols-2 gap-5 my-8 px-6 md:px-4 lg:px-0`}
+        >
+          {[1, 2].map((item) => (
+            <div className="w-full max-w-sm border rounded-lg shadow bg-gray-800 border-gray-700">
+              <picture className="aspect-video w-full h-auto flex-none">
+                <ImageWithSkeleton
+                  className="rounded-t-lg aspect-video w-full h-48 m-auto object-cover"
+                  src="imagenskeleton.jpg"
+                  alt="imagen skeleton"
+                />
+              </picture>
+              <div className="mx-5 mt-3 mb-5 flex flex-col justify-between">
+                <div className="animate-pulse bg-gray-200 w-32 h-5 rounded-md"></div>
+                <div className="mt-auto">
+                  <div className="flex items-center mt-2.5 mb-5">
+                    <div className="animate-pulse bg-gray-200 w-24 h-5 rounded-md"></div>
+                    <div className="animate-pulse bg-gray-200 w-20 h-5 ml-2 rounded-md"></div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="animate-pulse bg-gray-200 w-14 h-6 rounded-md"></div>
+                    <div className="animate-pulse bg-gray-200 w-32 h-8 rounded-md"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </section>
       ) : totalItems === 0 ? (
         <section
