@@ -1,54 +1,62 @@
-# Astro Starter Kit: Basics
+# ωεβ Τσφδ
+
+A comprehensive collection of web resources and tools
+
+[![MIT License](https://img.shields.io/badge/License-MIT-orange.svg)](https://choosealicense.com/licenses/mit/)
+[![Astro](https://img.shields.io/badge/Astro-v4.3.6-purple.svg)](https://astro.build/)
+[![Notion API](https://img.shields.io/badge/Notion%20API-2022--06--28-blue.svg)](https://developers.notion.com/reference/intro)
+[![Node](https://img.shields.io/badge/Node-v18-green.svg)](https://developers.notion.com/reference/intro)
+
+![web-tools-screenshot](/public/screenshot.webp)
+
+## Environment Variables
+
+To run this project, you will need to add the following environment variables to your .env file
+
+`PUBLIC_NOTION_KEY`
+
+`PUBLIC_NOTION_TOOLS_DATABASE_ID`
+
+`PUBLIC_NOTION_TAGS_DATABASE_ID`
+
+## Run Locally
+
+Clone the project
 
 ```sh
-npm create astro@latest -- --template basics
+  git clone https://github.com/alvaldes/web-tools.git
 ```
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+Go to the project directory
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── components/
-│   │   └── Card.astro
-│   ├── layouts/
-│   │   └── Layout.astro
-│   └── pages/
-│       └── index.astro
-└── package.json
+```sh
+  cd web-tools
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Install dependencies
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+```sh
+  bun install
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+Start the server
 
-## 🧞 Commands
+```sh
+  bun run dev
+```
 
-All commands are run from the root of the project, from a terminal:
+Open your browser
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+```sh
+  http://localhost:4321/
+```
 
-## 👀 Want to learn more?
+## Contributing
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Contributions are always welcome!
+
+See `contributing.md` for ways to get started.
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)

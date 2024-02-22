@@ -29,41 +29,39 @@ const Gallery = () => {
   return (
     <>
       {$isLoading ? (
-        <section className="text-center">
-          <div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14rem"
-              height="14rem"
-              viewBox="0 0 24 24"
-            >
-              <circle cx={4} cy={12} r={1.5} fill="currentColor">
-                <animate
-                  attributeName="r"
-                  dur="0.75s"
-                  repeatCount="indefinite"
-                  values="1.5;3;1.5"
-                ></animate>
-              </circle>
-              <circle cx={12} cy={12} r={3} fill="currentColor">
-                <animate
-                  attributeName="r"
-                  dur="0.75s"
-                  repeatCount="indefinite"
-                  values="3;1.5;3"
-                ></animate>
-              </circle>
-              <circle cx={20} cy={12} r={1.5} fill="currentColor">
-                <animate
-                  attributeName="r"
-                  dur="0.75s"
-                  repeatCount="indefinite"
-                  values="1.5;3;1.5"
-                ></animate>
-              </circle>
-            </svg>
-            <span className="sr-only">Loading...</span>
-          </div>
+        <section className="text-center flex justify-center flex-col max-w-[28rem] px-6 h-full my-auto">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14rem"
+            height="14rem"
+            viewBox="0 0 24 24"
+          >
+            <circle cx={4} cy={12} r={1.5} fill="currentColor">
+              <animate
+                attributeName="r"
+                dur="0.75s"
+                repeatCount="indefinite"
+                values="1.5;3;1.5"
+              ></animate>
+            </circle>
+            <circle cx={12} cy={12} r={3} fill="currentColor">
+              <animate
+                attributeName="r"
+                dur="0.75s"
+                repeatCount="indefinite"
+                values="3;1.5;3"
+              ></animate>
+            </circle>
+            <circle cx={20} cy={12} r={1.5} fill="currentColor">
+              <animate
+                attributeName="r"
+                dur="0.75s"
+                repeatCount="indefinite"
+                values="1.5;3;1.5"
+              ></animate>
+            </circle>
+          </svg>
+          <span className="sr-only">Loading...</span>
         </section>
       ) : totalItems === 0 ? (
         <section
