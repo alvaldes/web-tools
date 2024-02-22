@@ -16,6 +16,7 @@ const Search: FunctionalComponent = () => {
   const [searchFilter, setSearchFilter] = useState<string>("");
   const [placeholder, setPlaceholder] = useState("Search");
   const [isLoading, setIsLoading] = useState(true);
+  const [isToolLoading, setIsToolLoading] = useState(true);
   const $tags = useStore(tagsItems);
 
   const toogleDropdown = () => {
@@ -54,6 +55,7 @@ const Search: FunctionalComponent = () => {
       }),
     }).then((res) => res.json());
     saveToolItem(draft);
+    setIsToolLoading(false);
     setIsLoading(false);
     saveIsLoading(false);
   };
@@ -87,6 +89,8 @@ const Search: FunctionalComponent = () => {
       saveToolItem(data);
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsToolLoading(false);
     }
   };
 
@@ -118,7 +122,7 @@ const Search: FunctionalComponent = () => {
   }, []);
 
   useEffect(() => {
-    if (Object.keys($tags).length > 0) {
+    if (Object.keys($tags).length > 0 && !isToolLoading) {
       setIsLoading(false);
       saveIsLoading(false);
     }
