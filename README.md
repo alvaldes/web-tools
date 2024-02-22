@@ -55,7 +55,7 @@ Open your browser
 
 Contributions are always welcome!
 
-See `contributing.md` for ways to get started.
+Just make a PR or contact me for ways to get started.
 
 ## License
 

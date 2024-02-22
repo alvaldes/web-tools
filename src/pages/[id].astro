@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import { getPage, getTags, getBlocks } from "../lib/notion";
 import { colorVariants } from "../lib/utils";
+import ImageWithSkeleton from "../components/ImageWithSkeleton";
 
 interface NotionPage {
   object: string;
@@ -161,10 +162,11 @@ const toolName = tool.properties.Name.title[0].plain_text;
     </nav>
     <section class="py-0 px-4 md:pt-6">
       <picture class="w-full p-4 md:p-0 md:w-5/12 h-auto float-right ml-6 mb-4">
-        <img
+        <ImageWithSkeleton
           src={tool.properties.Image.url}
           alt={`Cover of ${id}`}
-          class="object-cover w-full h-auto rounded-md"
+          className="object-cover w-full h-64 rounded-md"
+          client:load
         />
       </picture>
       <div class="clear-right inline gap-2">

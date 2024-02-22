@@ -3,6 +3,7 @@ import { useStore } from "@nanostores/preact";
 import Card from "./Card";
 import { useEffect, useState } from "preact/hooks";
 import Pagination from "./Pagination";
+import ImageWithSkeleton from "./ImageWithSkeleton";
 
 const Gallery = () => {
   const $tools = useStore(toolItems);
@@ -67,7 +68,7 @@ const Gallery = () => {
         <section
           className={`flex justify-center flex-col max-w-[28rem] px-6 h-full my-auto`}
         >
-          <img
+          <ImageWithSkeleton
             src="notfound.svg"
             alt="Result Not Found"
             className="mx-auto w-fit h-52 sm:h-60 opacity-65"

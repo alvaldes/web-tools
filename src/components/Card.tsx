@@ -1,4 +1,5 @@
 import Tag from "./Tag";
+import ImageWithSkeleton from "./ImageWithSkeleton";
 
 interface Props {
   img: string;
@@ -15,7 +16,7 @@ const Card = (props: Props) => {
   return (
     <div className="w-full max-w-sm border rounded-lg shadow bg-gray-800 border-gray-700">
       <picture className="aspect-video w-full h-auto flex-none">
-        <img
+        <ImageWithSkeleton
           className="rounded-t-lg aspect-video w-full h-48 m-auto object-cover"
           src={props.img}
           alt={`${props.img} tool`}
