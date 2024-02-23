@@ -3,12 +3,12 @@ import type { Tags } from "@/lib/notion";
 
 interface Props {
   id: string;
-  tags: Record<string, Tags>;
+  tags: Tags[];
   removeFilter: (id: string) => void;
 }
 
 export default function Filter(props: Props) {
-  const tag = props.tags[props.id];
+  const tag = props.tags.find((item) => item.id === props.id) || null;
   let color = "blue";
   if (tag !== null) {
     color = tag.color;

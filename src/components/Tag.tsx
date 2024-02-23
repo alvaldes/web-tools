@@ -1,12 +1,13 @@
 import { type Tags } from "@/lib/notion";
-import { tagsItems } from "@/lib/toolStore";
 import { colorVariants } from "@/lib/utils";
 
 interface Props {
   id: string;
+  tags: Tags[];
 }
 const Tag = (props: Props) => {
-  const tag: Tags | null = tagsItems.get()[props.id] || null;
+  const tag: Tags | null =
+    props.tags.find((item) => item.id === props.id) || null;
   let color = "blue";
   if (tag !== null) {
     color = tag.color;

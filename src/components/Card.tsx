@@ -1,10 +1,12 @@
 import Tag from "./Tag";
 import ImageWithSkeleton from "./ImageWithSkeleton";
+import type { Tags } from "@/lib/notion";
 
 interface Props {
   img: string;
   title: string;
-  tags: string[];
+  itemTags: string[];
+  tags: Tags[];
   url: string;
   id: string;
 }
@@ -28,8 +30,8 @@ const Card = (props: Props) => {
         </h5>
         <div className="mt-auto">
           <div className="flex items-center mt-2.5 mb-5">
-            {props.tags.map((item) => (
-              <Tag id={item} />
+            {props.itemTags.map((item) => (
+              <Tag id={item} tags={props.tags} />
             ))}
           </div>
           <div className="flex items-center justify-between">
