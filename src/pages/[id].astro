@@ -218,7 +218,11 @@ const toolName = tool.properties.Name.title[0].plain_text;
             blocks.results.map(
               (block: any, index: number) =>
                 index > 1 && (
-                  <li>{block.bulleted_list_item.rich_text[0].plain_text}</li>
+                  <li>
+                    {block.bulleted_list_item.rich_text
+                      .map((item: any) => item.plain_text)
+                      .join("")}
+                  </li>
                 )
             )
           }
