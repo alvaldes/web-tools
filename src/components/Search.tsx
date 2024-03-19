@@ -104,6 +104,7 @@ const Search: FunctionalComponent = () => {
       console.error(e);
     }
   };
+
   useEffect(() => {
     fetchTools();
     fetchTags();
@@ -116,7 +117,7 @@ const Search: FunctionalComponent = () => {
     if (tags.length > 0 && !isToolLoading) {
       setIsLoading(false);
     }
-  }, [tags]);
+  }, [tags, isToolLoading]);
 
   return (
     <>
