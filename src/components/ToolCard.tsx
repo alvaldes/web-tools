@@ -25,11 +25,16 @@ export interface ToolCardProps {
  *
  * Titles are clamped with `line-clamp-2` instead of being truncated in JavaScript, which
  * keeps every card in a row the same height.
+ *
+ * The preview needs no horizontal negative margin to sit flush: the card root sets only
+ * vertical padding, so `w-full` already spans the whole card width. A horizontal negative
+ * margin here would shift the image left without widening it, leaving a gap at the right
+ * edge and letting `overflow-hidden` crop the left edge.
  */
 export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCardProps) {
   return (
     <Card className="relative h-full transition-shadow hover:ring-ring focus-within:ring-2 focus-within:ring-ring">
-      <div className="-mx-[var(--card-spacing)] -mt-[var(--card-spacing)] aspect-video w-full shrink-0 overflow-hidden bg-muted">
+      <div className="-mt-[var(--card-spacing)] aspect-video w-full shrink-0 overflow-hidden bg-muted">
         <ImageWithSkeleton
           className="h-full w-full object-cover object-top transition-transform duration-300 group-hover/card:scale-105"
           src={img}
@@ -93,7 +98,7 @@ export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCard
 export function ToolCardSkeleton() {
   return (
     <Card className="h-full" aria-hidden="true">
-      <div className="-mx-[var(--card-spacing)] -mt-[var(--card-spacing)] aspect-video w-full shrink-0 animate-pulse bg-muted" />
+      <div className="-mt-[var(--card-spacing)] aspect-video w-full shrink-0 animate-pulse bg-muted" />
       <CardHeader>
         <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
       </CardHeader>

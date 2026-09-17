@@ -17,6 +17,12 @@ import { cn } from "@/lib/utils";
  * Spacing is driven by the `--card-spacing` custom property, so a consumer can retune
  * the whole card inset at once, e.g. `className="[--card-spacing:1.5rem]"`.
  *
+ * The root insets only the vertical axis; the horizontal inset belongs to CardHeader,
+ * CardContent and CardFooter. A child that must sit flush against the left and right card
+ * edges therefore already spans the full width on its own and must not carry a horizontal
+ * negative margin: that shifts the child without widening it, which opens a gap at the
+ * trailing edge and pushes the leading edge under the root's overflow clipping.
+ *
  * Tailwind 3 adaptations of the upstream (Tailwind 4) classes:
  * - `gap-(--card-spacing)` -> `gap-[var(--card-spacing)]`
  * - `has-data-[slot=…]` -> `[&:has([data-slot=…])]`: Tailwind 3.4 cannot stack the
