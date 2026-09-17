@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 interface Props {
   isLoading: boolean;
   itemsPerPage: number;
@@ -9,6 +11,15 @@ interface Props {
   setItemsPerPage: (itemsPerPage: number) => void;
 }
 
+// The state classes used to set only a border *color* with no border width, so no
+// border ever rendered. `border` is now part of the base classes.
+const buttonBase =
+  "flex items-center justify-center h-8 px-3 text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const buttonEnabled =
+  "bg-muted border-border text-muted-foreground hover:bg-card hover:text-foreground cursor-pointer";
+const buttonDisabled =
+  "bg-background border-border text-muted-foreground opacity-60 cursor-not-allowed";
+
 const Pagination = ({
   isLoading,
   itemsPerPage,
@@ -19,25 +30,34 @@ const Pagination = ({
   setCurrentPage,
   setItemsPerPage,
 }: Props) => {
+  const isFirstPage = currentPage === 1;
+  const isLastPage = currentPage === Math.ceil(totalItems / itemsPerPage);
+
   return (
-    <div className={`flex flex-col items-center ${isLoading ? "hidden" : ""}`}>
-      <span className="text-sm text-gray-400">
+    <div className={cn("flex flex-col items-center gap-2", isLoading && "hidden")}>
+      <p className="text-sm text-muted-foreground">
         Showing{" "}
-        <span className="font-semibold text-white">{indexOfFirstItem}</span>{" "}
-        <span className={`${itemsPerPage === 1 ? "hidden" : ""}`}>
-          to <span className="font-semibold text-white">{indexOfLastItem}</span>
-        </span>{" "}
-        of <span className="font-semibold text-white">{totalItems}</span>{" "}
+        <span className="font-semibold text-foreground">{indexOfFirstItem}</span>
+        {itemsPerPage !== 1 && (
+          <>
+            {" "}
+            to{" "}
+            <span className="font-semibold text-foreground">
+              {indexOfLastItem}
+            </span>
+          </>
+        )}{" "}
+        of <span className="font-semibold text-foreground">{totalItems}</span>{" "}
         Entries
-      </span>
+      </p>
       <div className="inline-flex mt-2 xs:mt-0">
         <button
-          className={`flex items-center justify-center mr-0.5 px-3 h-8 text-sm font-medium rounded-s focus:ring-2 focus:outline-none ${
-            currentPage === 1
-              ? "bg-gray-900 border-gray-800 text-gray-500 cursor-not-allowed"
-              : "bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white cursor-pointer"
-          }`}
-          disabled={currentPage === 1}
+          className={cn(
+            buttonBase,
+            "me-0.5 rounded-s",
+            isFirstPage ? buttonDisabled : buttonEnabled,
+          )}
+          disabled={isFirstPage}
           onClick={() => setCurrentPage(currentPage - 1)}
         >
           <svg
@@ -53,14 +73,15 @@ const Pagination = ({
               strokeLinejoin="round"
               strokeWidth="2"
               d="M13 5H1m0 0 4 4M1 5l4-4"
-            ></path>
+            />
           </svg>
           Prev
         </button>
         <select
-          className="flex items-center justify-center px-1 h-8 text-sm font-medium bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white cursor-pointer focus:ring-2 focus:outline-none"
+          aria-label="Items per page"
+          className="flex items-center justify-center px-1 h-8 text-sm font-medium border bg-muted border-border text-muted-foreground hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&>option]:bg-popover [&>option]:text-popover-foreground"
           onChange={(e) =>
-            setItemsPerPage(parseInt((e.target as HTMLSelectElement).value))
+            setItemsPerPage(Number((e.target as HTMLSelectElement).value))
           }
           value={itemsPerPage}
         >
@@ -70,12 +91,12 @@ const Pagination = ({
           <option value="8">8 items per page</option>
         </select>
         <button
-          className={`flex items-center justify-center ml-0.5 px-3 h-8 text-sm font-medium rounded-e focus:ring-2 focus:outline-none ${
-            currentPage === Math.ceil(totalItems / itemsPerPage)
-              ? "bg-gray-900 border-gray-800 text-gray-500 cursor-not-allowed"
-              : "bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white cursor-pointer"
-          }`}
-          disabled={currentPage === Math.ceil(totalItems / itemsPerPage)}
+          className={cn(
+            buttonBase,
+            "ms-0.5 rounded-e",
+            isLastPage ? buttonDisabled : buttonEnabled,
+          )}
+          disabled={isLastPage}
           onClick={() => setCurrentPage(currentPage + 1)}
         >
           Next
@@ -92,7 +113,7 @@ const Pagination = ({
               strokeLinejoin="round"
               strokeWidth="2"
               d="M1 5h12m0 0L9 1m4 4L9 9"
-            ></path>
+            />
           </svg>
         </button>
       </div>

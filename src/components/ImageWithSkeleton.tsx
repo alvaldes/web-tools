@@ -23,7 +23,7 @@ const ImageWithSkeleton = ({ src, alt, className, ...props }: any) => {
   return (
     <>
       {!isLoaded && (
-        <div className={`animate-pulse bg-gray-200 ${className}`}></div>
+        <div className={`animate-pulse bg-muted ${className}`}></div>
       )}
       <img
         ref={imgRef}
