@@ -20,5 +20,8 @@ pnpm-debug.log*
 
 # macOS-specific files
 .DS_Store
-# Local Pi runtime state
+
+# Local Pi runtime state: per-machine harness state, not shared configuration.
+# SDD project configuration lives in openspec/config.yaml and *is* tracked.
 .atl/
+.pi/
