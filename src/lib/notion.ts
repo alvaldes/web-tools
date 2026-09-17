@@ -49,13 +49,19 @@ async function fetchNotionApi(database: string, body: any): Promise<any> {
 
 export async function getTags(): Promise<Tags[]> {
   const pages = await fetchNotionApi(tagsApiKey, null);
-  const tags = pages.results.map((page: any) => {
-    return {
-      id: page.id,
-      name: page.properties.Name.title[0].text.content,
-      color: page.properties.Color.rich_text[0].plain_text,
-    };
-  });
+  const tags = pages.results
+    .map((page: any) => {
+      return {
+        id: page.id,
+        name: page.properties.Name.title[0].text.content,
+        color: page.properties.Color.rich_text[0].plain_text,
+      };
+    })
+    .filter((tag: Tags) => {
+      // Filter out deprecated tags
+      const name = tag.name.toLowerCase();
+      return !name.includes('deprecated') && !name.includes('(old)');
+    });
   return tags;
 }
 

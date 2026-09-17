@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { type Tags, type WebTools } from "@/lib/notion";
+import { tagCategories } from "@/lib/utils";
 import Filter from "./Filter";
 import type { FunctionalComponent } from "preact";
 import Gallery from "./Gallery";
@@ -141,10 +142,10 @@ const Search: FunctionalComponent = () => {
             <button
               id="dropdown-button"
               disabled={tags.length == 0 || isLoading}
-              className={`flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center border rounded-s-lg rounded-e-none focus:ring-2 focus:outline-none bg-gray-700 focus:ring-gray-700 text-white border-gray-600 ${
+              className={`flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center border rounded-s-lg rounded-e-none focus:ring-2 focus:outline-none bg-muted focus:ring-ring text-foreground border-border ${
                 tags.length == 0 || isLoading
                   ? "cursor-wait"
-                  : "cursor-pointer hover:bg-gray-600"
+                  : "cursor-pointer hover:bg-card"
               }`}
               type="button"
               onClick={toogleDropdown}
@@ -170,32 +171,45 @@ const Search: FunctionalComponent = () => {
               id="dropdown"
               className={`absolute mt-12 z-20 ${
                 isDropOpen ? "" : `hidden`
-              } bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700`}
+              } bg-popover divide-y divide-border rounded-lg shadow-lg w-56 max-h-96 overflow-y-auto`}
             >
-              <ul className="py-2 text-sm text-gray-200">
-                {tags.map((tag, indice) => (
-                  <li key={tag}>
-                    <button
-                      type="button"
-                      className="inline-flex w-full px-4 py-2 hover:bg-gray-600 hover:text-white"
-                      onClick={() => selectCategory(tags[indice])}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={categoryFilter.includes(tag.id)}
-                        className="mr-1 my-auto"
-                      />
-                      {tags[indice].name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              {tagCategories.map((category) => {
+                const categoryTags = tags.filter((tag) =>
+                  category.tags.includes(tag.name.toLowerCase())
+                );
+                if (categoryTags.length === 0) return null;
+                return (
+                  <div key={category.name}>
+                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {category.name}
+                    </div>
+                    <ul className="py-1 text-sm">
+                      {categoryTags.map((tag) => (
+                        <li key={tag.id}>
+                          <button
+                            type="button"
+                            className="inline-flex w-full items-center px-4 py-2 hover:bg-muted hover:text-foreground cursor-pointer"
+                            onClick={() => selectCategory(tag)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={categoryFilter.includes(tag.id)}
+                              className="mr-2 my-auto"
+                            />
+                            {tag.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
             <div className="relative w-full">
               <input
                 type="text"
                 id="search-dropdown"
-                className={`block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none bg-gray-700 border-s-gray-700 border-gray-600 placeholder-gray-400 text-white ${
+                className={`block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-ring focus:border-ring focus:ring-2 focus:outline-none bg-muted border-s-border border-border placeholder:text-muted-foreground text-foreground ${
                   isLoading ? "cursor-wait" : "cursor-text"
                 }`}
                 placeholder={placeholder}
@@ -208,16 +222,16 @@ const Search: FunctionalComponent = () => {
                 type="button"
                 disabled={isLoading}
                 onClick={(e) => search(e)}
-                className={`absolute top-0 end-0 p-2.5 text-sm font-medium h-full text-white rounded-e-lg border  focus:ring-2 focus:outline-none ${
+                className={`absolute top-0 end-0 p-2.5 text-sm font-medium h-full text-primary-foreground rounded-e-lg border focus:ring-2 focus:outline-none ${
                   isLoading
-                    ? "border-gray-600 bg-gray-800 cursor-wait"
-                    : "border-blue-700 bg-blue-600 hover:bg-blue-700 focus:ring-blue-800 cursor-pointer"
+                    ? "border-border bg-card cursor-wait"
+                    : "border-transparent bg-primary hover:brightness-110 focus:ring-ring cursor-pointer"
                 }`}
               >
                 {isLoading ? (
                   <svg
                     aria-hidden="true"
-                    className="inline w-4 h-4 text-gray-200 animate-spin dark:text-gray-600"
+                    className="inline w-4 h-4 text-muted-foreground animate-spin [&>path:first-child]:opacity-25"
                     viewBox="0 0 100 101"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
@@ -228,7 +242,7 @@ const Search: FunctionalComponent = () => {
                     />
                     <path
                       d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                      fill="#1C64F2"
+                      fill="currentColor"
                     />
                   </svg>
                 ) : (

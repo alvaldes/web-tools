@@ -20,4 +20,29 @@ export const colorVariants = {
   yellow: "bg-yellow-900 text-yellow-300",
   indigo: "bg-indigo-900 text-indigo-300",
   purple: "bg-purple-900 text-purple-300",
+  brown: "bg-amber-900 text-amber-300",
 };
+
+export type TagCategory = {
+  name: string;
+  tags: string[];
+};
+
+export const tagCategories: TagCategory[] = [
+  {
+    name: "Tipo",
+    tags: ["color", "svg", "image", "css", "typography", "code", "ai", "dev"],
+  },
+  {
+    name: "Función",
+    tags: ["generator", "converter", "optimizer", "editor", "library", "inspector"],
+  },
+  {
+    name: "Características",
+    tags: ["free", "open source", "no login", "api"],
+  },
+  {
+    name: "Contenido",
+    tags: ["tutorial", "cheatsheet", "resource"],
+  },
+];
