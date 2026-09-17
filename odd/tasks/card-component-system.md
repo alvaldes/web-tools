@@ -1,6 +1,7 @@
 # Feature: Card Component System
 
-Status: implemented and verified; committed on `main`
+Status: implemented and verified; committed on `main`, plus one follow-up fix from the
+visual pass over a loaded card
 Branch: `main`. GitButler's abandoned `gitbutler/integration` branch was deleted: its single
 commit (`979fabd`) had an empty diff against `main`, so nothing was lost.
 Verification baseline: `bun run astro check` → 0 errors, 0 warnings, 2 hints (pre-change)
@@ -69,6 +70,8 @@ The tool listing card (`src/components/Card.tsx`) has correctness and structural
 - [x] T5 — Rebuild the gallery skeletons and grid on the primitive (`src/components/Gallery.tsx`)
 - [x] T6 — Migrate Tag, Filter, Pagination and the search controls to tokens
 - [x] T7 — Verify: `bun run astro check` clean plus manual visual pass
+- [x] T8 — Fix what the visual pass over a loaded card exposed (title size regression,
+      footer weight, ambiguous arrow, preview crop)
 
 ## Evidence
 
@@ -81,7 +84,7 @@ The tool listing card (`src/components/Card.tsx`) has correctness and structural
 | T4/T5 | SSR of `/` returns 8 skeleton cards with `data-slot="card"`, `card-header`, `card-content`, `card-footer` and `aria-busy="true"` |
 | T6 | `lens_diagnostics` (LSP, 8 paths) → 7 clean; 3 information-level findings, all pre-existing in `Search.tsx` |
 | T7 | `bun run astro check` → 0 errors, 0 warnings, 0 hints (was 2 hints); `bun run build` completes |
-| T7 pending | Visual pass over a *loaded* card (hover ring, image zoom, stretched link, footer band) — needs a browser plus live Notion data |
+| T8 | Visual pass over a loaded card screenshot; title measured at ~14px against the previous `text-xl`, plus `object-top`/`text-base` present and `py-2.5` emitted at byte 12710, after `p-[var(--card-spacing)]` at 8432 |
 
 ### Verification notes
 
@@ -116,9 +119,25 @@ which is exactly what `ToolCard` destructures.
 - **Build output.** `bun run build` writes `.vercel/output`; it was not gitignored and
   the build was generated there. `.vercel/` is now ignored and the output was removed.
 
+## Visual pass (T8)
+
+Observed on a screenshot of a loaded card. What it confirmed and what it broke:
+
+| Finding | Severity | Resolution |
+| --- | --- | --- |
+| Title rendered at ~14px: `CardTitle` has no size class and inherited `text-sm` from the card root, while the component it replaced used `text-xl`. A regression, not a design choice | regression | `text-base` on `ToolCard`'s `CardTitle` |
+| Footer sat at the same size as the title with a full `--card-spacing` box around a single secondary link | cosmetic | `py-2.5` on `ToolCard`'s `CardFooter` |
+| The far-right arrow shared a row with "Visit site" and read as if it belonged to that external link, while it actually signalled the stretched card link to the internal detail page | ambiguity | arrow removed; the hover ring carries the affordance |
+| `object-cover` centred the crop of a tall screenshot, cutting rows top and bottom and slicing names at the left edge | cosmetic | `object-top` |
+
+The image bleeding edge to edge under rounded corners confirmed the negative-margin bleed
+works. The violet ring in the screenshot is the hover state, not the resting one: the
+compiled CSS shows `.ring-border` as the only unconditional ring rule and all four
+`ring-ring` rules prefixed by a state (`:hover`, `:focus-within`, `:focus`,
+`:focus-visible`).
+
 ## Follow-ups (not done)
 
-- Visual pass on loaded cards in a browser.
 - Card descriptions: needs a `description` field in `WebTools` (backend change).
 - Showing the tool's domain instead of the raw URL in the footer.
 - `toogleDropdown` typo in `Search.tsx` (belongs to the unrelated in-flight change).

@@ -19,7 +19,9 @@ export interface ToolCardProps {
  * The whole card navigates to the tool detail page: the title link owns the accessible
  * name and stretches an `::after` overlay across the card. The external "Visit site"
  * link sits above that overlay, so one card exposes exactly one primary destination
- * without nesting anchors.
+ * without nesting anchors. The hover ring on the card is what signals the stretched
+ * link; an arrow in the footer was removed because it read as if it belonged to the
+ * external link.
  *
  * Titles are clamped with `line-clamp-2` instead of being truncated in JavaScript, which
  * keeps every card in a row the same height.
@@ -29,7 +31,7 @@ export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCard
     <Card className="relative h-full transition-shadow hover:ring-ring focus-within:ring-2 focus-within:ring-ring">
       <div className="-mx-[var(--card-spacing)] -mt-[var(--card-spacing)] aspect-video w-full shrink-0 overflow-hidden bg-muted">
         <ImageWithSkeleton
-          className="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105"
+          className="h-full w-full object-cover object-top transition-transform duration-300 group-hover/card:scale-105"
           src={img}
           alt={`Preview of ${title}`}
           loading="lazy"
@@ -37,7 +39,9 @@ export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCard
         />
       </div>
       <CardHeader>
-        <CardTitle>
+        {/* CardTitle has no font size of its own: shadcn keeps the primitive neutral and
+            the card root sets text-sm. This is a content card, so the title is promoted. */}
+        <CardTitle className="text-base">
           <a
             href={`/${id}`}
             title={title}
@@ -54,7 +58,7 @@ export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCard
           ))}
         </CardContent>
       )}
-      <CardFooter className="mt-auto gap-2">
+      <CardFooter className="mt-auto gap-2 py-2.5">
         <a
           href={url}
           target="_blank"
@@ -79,21 +83,6 @@ export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCard
             />
           </svg>
         </a>
-        <svg
-          className="ms-auto h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover/card:translate-x-0.5"
-          aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 14 10"
-        >
-          <path
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M1 5h12m0 0L9 1m4 4L9 9"
-          />
-        </svg>
       </CardFooter>
     </Card>
   );
