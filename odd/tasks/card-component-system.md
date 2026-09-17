@@ -1,7 +1,7 @@
 # Feature: Card Component System
 
-Status: implemented and verified; committed on `main`, plus one follow-up fix from the
-visual pass over a loaded card
+Status: implemented and verified; committed on `main`, plus two follow-up rounds from
+visual passes over a loaded card (T8, T9)
 Branch: `main`. GitButler's abandoned `gitbutler/integration` branch was deleted: its single
 commit (`979fabd`) had an empty diff against `main`, so nothing was lost.
 Verification baseline: `bun run astro check` → 0 errors, 0 warnings, 2 hints (pre-change)
@@ -72,6 +72,9 @@ The tool listing card (`src/components/Card.tsx`) has correctness and structural
 - [x] T7 — Verify: `bun run astro check` clean plus manual visual pass
 - [x] T8 — Fix what the visual pass over a loaded card exposed (title size regression,
       footer weight, ambiguous arrow, preview crop)
+- [x] T9 — Second visual pass: measurable contrast for the tag pills and the footer link,
+      and the horizontal image bleed. Reported by the user as: the gray tag is invisible,
+      "Visit site" does not stand out, and the image does not reach the right card edge
 
 ## Evidence
 
@@ -85,6 +88,8 @@ The tool listing card (`src/components/Card.tsx`) has correctness and structural
 | T6 | `lens_diagnostics` (LSP, 8 paths) → 7 clean; 3 information-level findings, all pre-existing in `Search.tsx` |
 | T7 | `bun run astro check` → 0 errors, 0 warnings, 0 hints (was 2 hints); `bun run build` completes |
 | T8 | Visual pass over a loaded card screenshot; title measured at ~14px against the previous `text-xl`, plus `object-top`/`text-base` present and `py-2.5` emitted at byte 12710, after `p-[var(--card-spacing)]` at 8432 |
+| T9 | Playwright measurement of the rendered card (`~/Library/Caches/ms-playwright`, viewport 1440) against `astro dev` on :4399. Before: gray pill `rgb(17,24,39)` vs card `rgb(22,24,32)` = **1.00:1**; green pill 1.94:1; blue pill 1.71:1; `--primary` link vs `bg-muted` footer = **2.88:1**; image box `128→417-16` inside a card `144→417` = **16px right gap and 16px left overhang**. After: gray pill fill 1.17:1 plus a 1px inset ring of gray-400/25 measuring 1.84:1 against the card; link 5.85:1; image `144→417` = 0px gap on both sides. Details in "Visual pass 2" below |
+| T9 (extra) | Skeleton (data fetch aborted) → image width **== card width**, 0px gap on both sides. Detail page → 5 pills carry the new tint + ring. Production bundle `.vercel/output/static/_astro/_id_.f_1Tu9qz.css` contains `.bg-gray-500\/15{background-color:#6b728026}`, `.ring-gray-400\/25{--tw-ring-color: rgb(156 163 175 / .25)}` and `.text-link{color:var(--link)}`, with `bg-gray-900` and `bg-blue-900` gone. `astro check` → 0 errors, 0 warnings, 0 hints; `astro build` completes |
 
 ### Verification notes
 
@@ -135,6 +140,31 @@ works. The violet ring in the screenshot is the hover state, not the resting one
 compiled CSS shows `.ring-border` as the only unconditional ring rule and all four
 `ring-ring` rules prefixed by a state (`:hover`, `:focus-within`, `:focus`,
 `:focus-visible`).
+
+## Visual pass 2 (T9)
+
+The three defects the user reported were reproduced with an instrumented Chromium page
+(`playwright`, global install) that reads `getBoundingClientRect` plus the computed colors
+and computes WCAG relative-luminance ratios, instead of judging a screenshot by eye.
+
+| Report | Root cause | Fix |
+| --- | --- | --- |
+| The gray tag reads as bare text | `colorVariants.gray` was `bg-gray-900` (`#111827`) on a `--card` of `#161820`: a **1.00:1** surface delta, mathematically indistinguishable. The sibling variants were barely better (green 1.94:1, blue 1.71:1), so this was a class of defect, not one bad entry | Every variant is now a translucent tint plus an inset hairline: `bg-{c}-500/15 text-{c}-300 ring-1 ring-inset ring-{c}-400/25`. A translucent fill cannot coincide with any surface, and the ring defines the pill edge (gray: 1.82:1 ring against the card). The class strings stay literal on purpose: Tailwind's scanner cannot see an interpolated `bg-${color}-500/15`, so a helper would silently emit no CSS |
+| "Visit site" does not stand out | The link used `--primary` (`#2563eb`), which is a *fill* token for the blue search button and only reaches **2.88:1** as text on the `bg-muted` footer, below the 4.5:1 the 14px label needs | New `--link` token (`#60a5fa`, **5.86:1** on `bg-muted`, 6.97:1 on `--card`). `--primary` keeps painting the button, so the text-link role and the action-fill role are no longer the same token |
+| The image does not reach the right card edge | The card root carries only vertical padding (horizontal inset belongs to each section), so `w-full` was already the full card width. The horizontal negative margin inherited from the upstream v4 pattern (where the root itself has `px`) therefore only *shifted* the image 16px left and left 16px uncovered at the right | Horizontal negative margin removed from the card and the skeleton. The image now measures exactly `144→417`, flush on both sides and with **no horizontal crop** (the previous left overhang was being clipped by `overflow-hidden`, so the left 16px of every screenshot was silently cropped too) |
+
+A note was added to the `Card` primitive documenting that the root insets the horizontal
+axis to its sections, so a flush child needs no horizontal negative margin. That is the
+trap that produced this third defect: the bleed pattern was copied from a version of the
+primitive whose root padding is symmetric.
+
+The soft tint leaves the pill fill deliberately quiet (gray 1.17:1, green 1.29:1, blue
+1.20:1 against the card), so the **ring** is what draws the pill edge: 1.84:1 for gray and
+2.29:1 for green against the card. Verified in the rendered pixels at 4x, not only in the
+numbers. If that hairline ever reads too faint on a given monitor, the single lever is the
+ring alpha in `colorVariants` (`/25` -> `/40`, about 2.4:1 for gray); the fill alpha is not
+worth raising, since the text never was the contrast problem (it already sits at 8-10:1
+on the tint).
 
 ## Follow-ups (not done)
 
