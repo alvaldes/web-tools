@@ -61,7 +61,7 @@ export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCard
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="relative z-10 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="relative z-10 inline-flex items-center gap-1.5 text-sm font-medium text-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Visit site
           <span className="sr-only">(opens in a new tab)</span>

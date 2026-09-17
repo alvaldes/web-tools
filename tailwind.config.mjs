@@ -26,6 +26,9 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
+        // Text-link colour. Distinct from `primary`, which is a fill token: see the
+        // contrast rationale next to the token values in src/layouts/Layout.astro.
+        link: "var(--link)",
         primary: {
           DEFAULT: "var(--primary)",
           foreground: "var(--primary-foreground)",
