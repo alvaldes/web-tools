@@ -34,8 +34,6 @@ export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCard
           className="h-full w-full object-cover object-top transition-transform duration-300 group-hover/card:scale-105"
           src={img}
           alt={`Preview of ${title}`}
-          loading="lazy"
-          decoding="async"
         />
       </div>
       <CardHeader>
