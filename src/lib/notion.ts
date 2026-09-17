@@ -15,6 +15,28 @@ export type Tags = {
 const tagsApiKey = import.meta.env.PUBLIC_NOTION_TAGS_DATABASE_ID;
 const toolsApiKey = import.meta.env.PUBLIC_NOTION_TOOLS_DATABASE_ID;
 
+/** Default timeout for Notion API requests. */
+const NOTION_TIMEOUT_MS = 15_000;
+
+/**
+ * Thin wrapper around fetch that aborts after NOTION_TIMEOUT_MS.
+ * The raw Notion calls had no timeout, so a slow or unreachable endpoint would
+ * leave the request hanging until the system TCP timeout (~21 s on this machine).
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs = NOTION_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchNotionApi(database: string, body: any): Promise<any> {
   const headers = new Headers({
     Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
@@ -36,7 +58,7 @@ async function fetchNotionApi(database: string, body: any): Promise<any> {
       ...dataBody,
     };
   }
-  const response = await fetch(endpoint, {
+  const response = await fetchWithTimeout(endpoint, {
     method: "POST",
     headers,
     body: JSON.stringify(dataBody),
@@ -119,13 +141,16 @@ export async function searchTools(
 }
 
 export async function getPage(id: string) {
-  const response = await fetch("https://api.notion.com/v1/pages/" + id, {
-    method: "GET",
-    headers: {
-      Authorization: "Bearer " + import.meta.env.PUBLIC_NOTION_KEY,
-      "Notion-Version": "2022-06-28",
+  const response = await fetchWithTimeout(
+    `https://api.notion.com/v1/pages/${id}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
+        "Notion-Version": "2022-06-28",
+      },
     },
-  });
+  );
   if (!response.ok) {
     throw new Error(`Notion API request failed: ${response.statusText}`);
   }
@@ -133,15 +158,15 @@ export async function getPage(id: string) {
 }
 
 export async function getBlocks(id: string) {
-  const response = await fetch(
-    "https://api.notion.com/v1/blocks/" + id + "/children?page_size=100",
+  const response = await fetchWithTimeout(
+    `https://api.notion.com/v1/blocks/${id}/children?page_size=100`,
     {
       method: "GET",
       headers: {
-        Authorization: "Bearer " + import.meta.env.PUBLIC_NOTION_KEY,
+        Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
         "Notion-Version": "2022-06-28",
       },
-    }
+    },
   );
   if (!response.ok) {
     throw new Error(`Notion API request failed: ${response.statusText}`);

@@ -68,19 +68,24 @@ interface Image {
 
 const { id } = Astro.params;
 if (!id) {
-  throw new Error("ID parameter is missing");
+  return Astro.redirect("/");
 }
-const tool: NotionPage = await getPage(id);
-const tags = await getTags();
-const blocks = await getBlocks(id);
-let tagsList: any[] = [];
 
-const loadTags = async () => {
-  tool.properties.Tags.relation.map((t: any) => {
-    tagsList = [...tagsList, ...tags.filter((x) => x.id === t.id)];
-  });
-};
-await loadTags();
+// getTags is proven reliable (it works on the index page); getPage and getBlocks
+// can timeout if the Notion API is slow, so they run in parallel with a 15 s
+// ceiling and the page redirects home on any failure.
+const tags = await getTags();
+let tool: NotionPage;
+let blocks: any;
+try {
+  [tool, blocks] = await Promise.all([getPage(id), getBlocks(id)]);
+} catch {
+  return Astro.redirect("/");
+}
+let tagsList: any[] = [];
+tool.properties.Tags.relation.map((t: any) => {
+  tagsList = [...tagsList, ...tags.filter((x) => x.id === t.id)];
+});
 const toolName = tool.properties.Name.title[0].plain_text;
 ---
 
@@ -209,7 +214,7 @@ const toolName = tool.properties.Name.title[0].plain_text;
           }
         </div>
         <span class="text-pretty">
-          {blocks.results[0].paragraph.rich_text[0].plain_text}
+          {blocks.results[0]?.paragraph?.rich_text?.[0]?.plain_text ?? ""}
         </span>
         <h3 class="text-xl mt-4">Main Features:</h3>
         <hr />
@@ -219,9 +224,9 @@ const toolName = tool.properties.Name.title[0].plain_text;
               (block: any, index: number) =>
                 index > 1 && (
                   <li>
-                    {block.bulleted_list_item.rich_text
-                      .map((item: any) => item.plain_text)
-                      .join("")}
+                    {block.bulleted_list_item?.rich_text
+                      ?.map((item: any) => item.plain_text)
+                      .join("") ?? ""}
                   </li>
                 )
             )
