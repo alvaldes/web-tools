@@ -1,8 +1,11 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { Tags, WebTools } from "@/lib/notion";
-import Pagination from "./Pagination";
 import ImageWithSkeleton from "./ImageWithSkeleton";
 import ToolCard, { ToolCardSkeleton } from "./ToolCard";
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface Props {
   tools: WebTools[];
@@ -10,53 +13,74 @@ interface Props {
   tags: Tags[];
 }
 
+const BATCH_SIZE = 8;
+
 const Gallery = ({ tools, isLoading, tags }: Props) => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef(0);
 
   const totalItems = tools.length;
+  const visibleItems = tools.slice(0, visibleCount);
+  const hasMore = visibleCount < totalItems;
 
-  // A new result set starts at page 1, which is the intended UX after a search.
+  // Reset visible count when the tool list changes (new search/filter)
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(BATCH_SIZE);
+    prevCountRef.current = 0;
   }, [tools]);
 
-  // The clamp is the structural guarantee behind that reset: even if an update lands
-  // one render before the effect above, `currentPage` can never point past the last
-  // page, so an empty grid over a non-zero total is impossible.
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  const safePage = Math.min(currentPage, totalPages);
+  // Animate newly added items
+  useEffect(() => {
+    if (!gridRef.current) return;
 
-  const changeItemsPerPage = (itemsPerPage: number) => {
-    setItemsPerPage(itemsPerPage);
-    setCurrentPage(1);
-  };
+    const newItems = gridRef.current.querySelectorAll(
+      `[data-index]:not([data-animated])`,
+    );
 
-  const indexOfLastItem = safePage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = tools.slice(indexOfFirstItem, indexOfLastItem);
+    newItems.forEach((el) => {
+      gsap.fromTo(
+        el,
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.4,
+          ease: "power2.out",
+          onComplete: () => el.setAttribute("data-animated", "true"),
+        },
+      );
+    });
 
-  // A single grid definition for both the skeleton and the loaded results, so the
-  // layout does not shift when the data arrives.
-  const gridClassName = `grid grid-cols-1 sm:grid-cols-2 gap-5 my-8 px-6 md:px-4 lg:px-0 ${
-    itemsPerPage >= 4 ? "lg:grid-cols-3 xl:grid-cols-4" : ""
-  }`;
+    prevCountRef.current = visibleItems.length;
+  }, [visibleItems.length]);
 
-  const paginationProps = {
-    itemsPerPage,
-    indexOfFirstItem: indexOfFirstItem + 1,
-    indexOfLastItem: Math.min(indexOfLastItem, totalItems),
-    totalItems,
-    currentPage: safePage,
-    setCurrentPage,
-    setItemsPerPage: changeItemsPerPage,
-    isLoading,
-  };
+  // Set up ScrollTrigger on the sentinel to load more
+  useEffect(() => {
+    if (!hasMore || !sentinelRef.current) return;
+
+    const trigger = ScrollTrigger.create({
+      trigger: sentinelRef.current,
+      start: "top bottom+=200", // trigger 200px before sentinel reaches viewport bottom
+      onEnter: () => {
+        setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, totalItems));
+      },
+    });
+
+    return () => {
+      trigger.kill();
+    };
+  }, [hasMore, totalItems]);
+
+  // A single grid definition for both the skeleton and the loaded results
+  const gridClassName =
+    "grid grid-cols-1 sm:grid-cols-2 gap-5 my-8 px-6 md:px-4 lg:px-0 lg:grid-cols-3 xl:grid-cols-4";
 
   if (isLoading) {
     return (
       <section className={gridClassName} aria-busy="true">
-        {Array.from({ length: itemsPerPage }).map((_, index) => (
+        {Array.from({ length: BATCH_SIZE }).map((_, index) => (
           <ToolCardSkeleton key={index} />
         ))}
       </section>
@@ -80,21 +104,62 @@ const Gallery = ({ tools, isLoading, tags }: Props) => {
 
   return (
     <section>
-      <Pagination {...paginationProps} />
-      <div className={gridClassName}>
-        {currentItems.map((item: any) => (
-          <ToolCard
+      <div ref={gridRef} className={gridClassName}>
+        {visibleItems.map((item: any, index: number) => (
+          <div
             key={item.id}
-            id={item.id}
-            title={item.title}
-            url={item.url}
-            img={item.img}
-            tagIds={item.tags}
-            tags={tags}
-          />
+            data-index={index}
+            data-animated={index < prevCountRef.current ? "true" : undefined}
+            className={
+              index < prevCountRef.current ? "opacity-100" : "opacity-0"
+            }
+          >
+            <ToolCard
+              id={item.id}
+              title={item.title}
+              url={item.url}
+              img={item.img}
+              tagIds={item.tags}
+              tags={tags}
+            />
+          </div>
         ))}
       </div>
-      <Pagination {...paginationProps} />
+
+      {/* Sentinel element for infinite scroll */}
+      {hasMore && (
+        <div ref={sentinelRef} className="flex justify-center py-8">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <svg
+              className="animate-spin h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            Loading more...
+          </div>
+        </div>
+      )}
+
+      {!hasMore && totalItems > BATCH_SIZE && (
+        <p className="text-center text-sm text-muted-foreground py-6">
+          Showing all {totalItems} results
+        </p>
+      )}
     </section>
   );
 };
