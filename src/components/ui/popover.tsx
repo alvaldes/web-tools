@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
  * wiring: the trigger is a render prop, so the consumer keeps full control of its
  * markup and the panel is anchored to the trigger by CSS alone.
  *
- * Why it exists: the dropdown this replaces rendered a `fixed inset-0 bg-black
- * opacity-50` button as its outside-click catcher, which made every control on the page
- * unclickable while a panel was open, and its panel was `absolute mt-12` with no
- * positioned ancestor, so it landed on top of the trigger that had opened it. Here the
- * wrapper is `relative`, the panel drops from `top-full`, and outside-click is a
- * document listener instead of a page-sized button.
+ * Why it exists: the dropdown this replaces rendered a translucent, page-sized fixed
+ * overlay as its outside-click catcher, which made every control on the page unclickable
+ * while a panel was open, and its panel was pushed down by a fixed margin from a wrapper
+ * that was not positioned, so it landed on top of the trigger that had opened it. Here the
+ * wrapper is `relative`, the panel drops from `top-full`, and outside-click is a document
+ * listener instead of a page-sized element.
  *
  * Composition:
  *
