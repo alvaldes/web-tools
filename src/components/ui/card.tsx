@@ -23,16 +23,9 @@ import { cn } from "@/lib/utils";
  * negative margin: that shifts the child without widening it, which opens a gap at the
  * trailing edge and pushes the leading edge under the root's overflow clipping.
  *
- * Tailwind 3 adaptations of the upstream (Tailwind 4) classes:
- * - `gap-(--card-spacing)` -> `gap-[var(--card-spacing)]`
- * - `has-data-[slot=…]` -> `[&:has([data-slot=…])]`: Tailwind 3.4 cannot stack the
- *   `data-*` variant inside `has-*` and silently drops the utility, so these are
- *   written as `&`-anchored arbitrary variants. Same for `[.border-b]` -> `[&.border-b]`:
- *   arbitrary variants without an explicit `&` are dropped.
- * - `@container/card-header` is dropped: container queries need a plugin that is not
- *   installed in this project.
- * - Token colors are plain CSS color values, so opacity modifiers (`bg-muted/50`) are
- *   not available. Use a dedicated token instead.
+ * Tailwind 4: `has-*` is native, `@container` is built-in, and `--color-*` theme
+ * variables make opacity modifiers work on semantic tokens.  The `--card-spacing`
+ * custom property still uses bracket syntax (`gap-[var(--card-spacing)]`).
  */
 
 type DivProps = PlainProps<HTMLDivElement>;
@@ -62,8 +55,8 @@ export function Card({ className, size = "default", ...props }: CardProps) {
       className={cn(
         "group/card flex flex-col gap-[var(--card-spacing)] overflow-hidden rounded-xl bg-card py-[var(--card-spacing)] text-sm text-card-foreground ring-1 ring-border",
         "[--card-spacing:1rem] data-[size=sm]:[--card-spacing:0.75rem]",
-        "[&:has([data-slot=card-footer])]:pb-0",
-        "[&:has(>img:first-child)]:pt-0 [&>img:first-child]:rounded-t-xl [&>img:last-child]:rounded-b-xl",
+        "has-[data-slot=card-footer]:pb-0",
+        "has-[>img:first-child]:pt-0 [&>img:first-child]:rounded-t-xl [&>img:last-child]:rounded-b-xl",
         className,
       )}
       {...props}
@@ -77,9 +70,9 @@ export function CardHeader({ className, ...props }: DivProps) {
       data-slot="card-header"
       className={cn(
         "group/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-[var(--card-spacing)]",
-        "[&:has([data-slot=card-action])]:grid-cols-[1fr_auto]",
-        "[&:has([data-slot=card-description])]:grid-rows-[auto_auto]",
-        "[&.border-b]:pb-[var(--card-spacing)]",
+        "has-[data-slot=card-action]:grid-cols-[1fr_auto]",
+        "has-[data-slot=card-description]:grid-rows-[auto_auto]",
+        "has-[.border-b]:pb-[var(--card-spacing)]",
         className,
       )}
       {...props}
