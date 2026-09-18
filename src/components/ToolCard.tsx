@@ -1,7 +1,13 @@
 import type { Tags } from "@/lib/notion";
 import ImageWithSkeleton from "./ImageWithSkeleton";
 import Tag from "./Tag";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 
 export interface ToolCardProps {
   id: string;
@@ -31,9 +37,16 @@ export interface ToolCardProps {
  * margin here would shift the image left without widening it, leaving a gap at the right
  * edge and letting `overflow-hidden` crop the left edge.
  */
-export default function ToolCard({ id, title, url, img, tagIds, tags }: ToolCardProps) {
+export default function ToolCard({
+  id,
+  title,
+  url,
+  img,
+  tagIds,
+  tags,
+}: ToolCardProps) {
   return (
-    <Card className="relative h-full transition-shadow hover:ring-ring focus-within:ring-2 focus-within:ring-ring">
+    <Card className="relative h-full pb-0 transition-shadow hover:ring-ring focus-within:ring-2 focus-within:ring-ring">
       <div className="-mt-[var(--card-spacing)] aspect-video w-full shrink-0 overflow-hidden bg-muted">
         <ImageWithSkeleton
           className="h-full w-full object-cover object-top transition-transform duration-300 group-hover/card:scale-105"
