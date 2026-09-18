@@ -97,8 +97,8 @@ export async function getTags(): Promise<Tags[]> {
 /**
  * Maps the rows of one Notion query response to `WebTools`.
  *
- * The same block was duplicated byte-for-byte in `getTools()` and `searchTools()`,
- * so a property rename had to land twice or the two paths silently diverged.
+ * The same block used to be duplicated byte-for-byte in each caller, so a property
+ * rename had to land twice or the paths silently diverged.
  */
 function mapToolPage(page: any): WebTools[] {
   return page.results.map((row: any) => {
@@ -122,37 +122,6 @@ export async function getTools(): Promise<WebTools[]> {
     tools.push(...mapToolPage(pages));
     cursor = pages.has_more ? pages.next_cursor : undefined;
   } while (cursor);
-  return tools;
-}
-
-export async function searchTools(
-  tags: string[],
-  query: string
-): Promise<WebTools[]> {
-  let filter: any = {
-    and: [
-      {
-        property: "Name",
-        rich_text: {
-          contains: query,
-        },
-      },
-    ],
-  };
-  if (tags.length > 0) {
-    const draft = tags.map((item) => ({
-      property: "Tags",
-      relation: {
-        contains: item,
-      },
-    }));
-    filter.and.push({
-      or: draft,
-    });
-  }
-  const pages = await fetchNotionApi(toolsApiKey, filter);
-  const tools = mapToolPage(pages);
-
   return tools;
 }
 
@@ -193,7 +162,6 @@ export async function getBlocks(id: string) {
 export default {
   getTags,
   getTools,
-  searchTools,
   getPage,
   getBlocks,
 };

@@ -1,19 +1,39 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import { type Tags, type WebTools } from "@/lib/notion";
+import { filterTools, sortTools, type SortDirection } from "@/lib/query";
 import { tagCategories } from "@/lib/utils";
 import Filter from "./Filter";
 import type { FunctionalComponent } from "preact";
 import Gallery from "./Gallery";
+import SortControl from "./SortControl";
 
 const Search: FunctionalComponent = () => {
   const [isDropOpen, setIsDropOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isToolLoading, setIsToolLoading] = useState(true);
   const [tools, setTools] = useState<WebTools[]>([]);
   const [tags, setTags] = useState<Tags[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [searchFilter, setSearchFilter] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [placeholder, setPlaceholder] = useState("Search");
+
+  // The catalog is fetched once and then only used to resolve tag ids to names, so the
+  // map is built here instead of on every keystroke.
+  const tagsById = useMemo(
+    () => new Map(tags.map((tag) => [tag.id, tag] as const)),
+    [tags],
+  );
+
+  // Filtering and sorting are pure functions in `lib/query`, so every interaction is
+  // derived from state and no round trip is needed to see the result.
+  const results = useMemo(
+    () =>
+      sortTools(
+        filterTools(tools, categoryFilter, searchFilter, tagsById),
+        sortDirection,
+      ),
+    [tools, categoryFilter, searchFilter, tagsById, sortDirection],
+  );
 
   const toogleDropdown = () => {
     setIsDropOpen(!isDropOpen);
@@ -36,22 +56,8 @@ const Search: FunctionalComponent = () => {
     setCategoryFilter([...draft]);
   };
 
-  const search = async (e: any) => {
-    e.preventDefault();
-    setIsLoading(true);
-    let draft = await fetch("/api/tools.json", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        tags: categoryFilter,
-        query: searchFilter,
-      }),
-    }).then((res) => res.json());
-    setTools(draft);
-    setIsToolLoading(false);
-    setIsLoading(false);
+  const toggleSortDirection = () => {
+    setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
   };
 
   const handleResize = () => {
@@ -62,63 +68,48 @@ const Search: FunctionalComponent = () => {
     }
   };
 
-  const fetchTools = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/tools.json", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tags: [],
-          query: "",
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const data = await res.json();
-      setTools(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsToolLoading(false);
-    }
-  };
-
-  const fetchTags = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/tags.json", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const data = await res.json();
-      setTags(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   useEffect(() => {
-    fetchTools();
-    fetchTags();
+    const loadCatalog = async () => {
+      try {
+        setIsLoading(true);
+        const [toolsResponse, tagsResponse] = await Promise.all([
+          fetch("/api/tools.json", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }),
+          fetch("/api/tags.json", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }),
+        ]);
+        if (!toolsResponse.ok) {
+          throw new Error(`HTTP error! status: ${toolsResponse.status}`);
+        }
+        if (!tagsResponse.ok) {
+          throw new Error(`HTTP error! status: ${tagsResponse.status}`);
+        }
+        const [toolsData, tagsData] = await Promise.all([
+          toolsResponse.json(),
+          tagsResponse.json(),
+        ]);
+        setTools(toolsData);
+        setTags(tagsData);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCatalog();
     window.addEventListener("resize", handleResize);
     handleResize();
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  useEffect(() => {
-    if (tags.length > 0 && !isToolLoading) {
-      setIsLoading(false);
-    }
-  }, [tags, isToolLoading]);
 
   return (
     <>
@@ -131,8 +122,11 @@ const Search: FunctionalComponent = () => {
         ></button>
       )}
       <section>
-        <form className="w-[90%] sm:w-[80%] mt-8 mb-4 mx-auto">
-          <div className="flex">
+        <form
+          className="w-[90%] sm:w-[80%] mt-8 mb-4 mx-auto"
+          onSubmit={(e) => e.preventDefault()}
+        >
+          <div className="flex items-center">
             <label
               htmlFor="search-dropdown"
               className="mb-2 text-sm font-medium text-foreground sr-only"
@@ -213,15 +207,13 @@ const Search: FunctionalComponent = () => {
                   isLoading ? "cursor-wait" : "cursor-text"
                 }`}
                 placeholder={placeholder}
-                required
                 disabled={isLoading}
                 value={searchFilter}
                 onChange={(e: any) => setSearchFilter(e.target?.value ?? "")}
               />
               <button
-                type="button"
+                type="submit"
                 disabled={isLoading}
-                onClick={(e) => search(e)}
                 className={`absolute top-0 end-0 p-2.5 text-sm font-medium h-full text-primary-foreground rounded-e-lg border focus:ring-2 focus:outline-none ${
                   isLoading
                     ? "border-border bg-card cursor-wait"
@@ -265,6 +257,10 @@ const Search: FunctionalComponent = () => {
                 <span className="sr-only">Search</span>
               </button>
             </div>
+            <SortControl
+              direction={sortDirection}
+              onToggle={toggleSortDirection}
+            />
           </div>
           <div className="mt-2 flex gap-2 flex-wrap">
             {categoryFilter.map((filter) => (
@@ -277,7 +273,7 @@ const Search: FunctionalComponent = () => {
             ))}
           </div>
         </form>
-        <Gallery tools={tools} isLoading={isLoading} tags={tags} />
+        <Gallery tools={results} isLoading={isLoading} tags={tags} />
       </section>
     </>
   );

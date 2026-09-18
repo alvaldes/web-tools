@@ -1,18 +1,9 @@
-import { getTools, searchTools } from "@/lib/notion";
+import { getTools } from "@/lib/notion";
 import type { APIRoute } from "astro";
 
-export const POST: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async () => {
   try {
-    const requestBody = await request.json();
-    const { tags, query } = requestBody;
-
-    let res = undefined;
-
-    if (tags.length > 0 || query != "") {
-      res = await searchTools(tags, query);
-    } else {
-      res = await getTools();
-    }
+    const res = await getTools();
 
     if (!res) {
       return new Response(null, {

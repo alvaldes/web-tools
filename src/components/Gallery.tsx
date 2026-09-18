@@ -1,23 +1,38 @@
 import { useEffect, useState } from "preact/hooks";
+import type { Tags, WebTools } from "@/lib/notion";
 import Pagination from "./Pagination";
 import ImageWithSkeleton from "./ImageWithSkeleton";
 import ToolCard, { ToolCardSkeleton } from "./ToolCard";
 
-const Gallery = ({ tools, isLoading, tags }: any) => {
-  const [totalItems, setTotalItems] = useState(0);
+interface Props {
+  tools: WebTools[];
+  isLoading: boolean;
+  tags: Tags[];
+}
+
+const Gallery = ({ tools, isLoading, tags }: Props) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
 
+  const totalItems = tools.length;
+
+  // A new result set starts at page 1, which is the intended UX after a search.
   useEffect(() => {
-    setTotalItems(tools.length);
+    setCurrentPage(1);
   }, [tools]);
+
+  // The clamp is the structural guarantee behind that reset: even if an update lands
+  // one render before the effect above, `currentPage` can never point past the last
+  // page, so an empty grid over a non-zero total is impossible.
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
 
   const changeItemsPerPage = (itemsPerPage: number) => {
     setItemsPerPage(itemsPerPage);
     setCurrentPage(1);
   };
 
-  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfLastItem = safePage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = tools.slice(indexOfFirstItem, indexOfLastItem);
 
@@ -32,7 +47,7 @@ const Gallery = ({ tools, isLoading, tags }: any) => {
     indexOfFirstItem: indexOfFirstItem + 1,
     indexOfLastItem: Math.min(indexOfLastItem, totalItems),
     totalItems,
-    currentPage,
+    currentPage: safePage,
     setCurrentPage,
     setItemsPerPage: changeItemsPerPage,
     isLoading,
