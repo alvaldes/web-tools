@@ -117,18 +117,8 @@ const Search: FunctionalComponent = () => {
       setIsLoading(true);
       setLoadError(null);
       const [toolsResponse, tagsResponse] = await Promise.all([
-        fetch("/api/tools.json", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }),
-        fetch("/api/tags.json", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }),
+        fetch("/api/tools.json", { method: "GET" }),
+        fetch("/api/tags.json", { method: "GET" }),
       ]);
       if (!toolsResponse.ok) {
         throw new Error(`HTTP error! status: ${toolsResponse.status}`);
