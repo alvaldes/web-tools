@@ -31,7 +31,7 @@ const Gallery = ({ tools, isLoading, tags }: Props) => {
     prevCountRef.current = 0;
   }, [tools]);
 
-  // Animate newly added items
+  // Animate newly added items with stagger
   useEffect(() => {
     if (!gridRef.current) return;
 
@@ -39,30 +39,40 @@ const Gallery = ({ tools, isLoading, tags }: Props) => {
       `[data-index]:not([data-animated])`,
     );
 
-    newItems.forEach((el) => {
+    if (newItems.length > 0) {
       gsap.fromTo(
-        el,
-        { opacity: 0, y: 30 },
+        newItems,
+        { opacity: 0, y: 20 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.4,
+          duration: 0.3,
+          stagger: 0.04,
           ease: "power2.out",
-          onComplete: () => el.setAttribute("data-animated", "true"),
+          onComplete: () => {
+            newItems.forEach((el) =>
+              el.setAttribute("data-animated", "true"),
+            );
+          },
         },
       );
-    });
+    }
 
     prevCountRef.current = visibleItems.length;
   }, [visibleItems.length]);
 
-  // Set up ScrollTrigger on the sentinel to load more
+  // Load more when user is 600px from the end (~2 rows of cards)
+  // Re-create on every visibleCount change so the trigger tracks the sentinel's
+  // new DOM position after items are appended.
   useEffect(() => {
     if (!hasMore || !sentinelRef.current) return;
 
+    // Kill any previous trigger first
+    ScrollTrigger.getAll().forEach((t) => t.kill());
+
     const trigger = ScrollTrigger.create({
       trigger: sentinelRef.current,
-      start: "top bottom+=200", // trigger 200px before sentinel reaches viewport bottom
+      start: "top bottom+=600",
       onEnter: () => {
         setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, totalItems));
       },
@@ -71,7 +81,7 @@ const Gallery = ({ tools, isLoading, tags }: Props) => {
     return () => {
       trigger.kill();
     };
-  }, [hasMore, totalItems]);
+  }, [hasMore, totalItems, visibleCount]);
 
   // A single grid definition for both the skeleton and the loaded results
   const gridClassName =
@@ -126,34 +136,8 @@ const Gallery = ({ tools, isLoading, tags }: Props) => {
         ))}
       </div>
 
-      {/* Sentinel element for infinite scroll */}
-      {hasMore && (
-        <div ref={sentinelRef} className="flex justify-center py-8">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <svg
-              className="animate-spin h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            Loading more...
-          </div>
-        </div>
-      )}
+      {/* Invisible sentinel for infinite scroll — no spinner needed, data is in-memory */}
+      {hasMore && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
 
       {!hasMore && totalItems > BATCH_SIZE && (
         <p className="text-center text-sm text-muted-foreground py-6">
