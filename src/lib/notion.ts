@@ -37,7 +37,11 @@ async function fetchWithTimeout(
   }
 }
 
-async function fetchNotionApi(database: string, body: any): Promise<any> {
+async function fetchNotionApi(
+  database: string,
+  body: any,
+  startCursor?: string
+): Promise<any> {
   const headers = new Headers({
     Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
     "Notion-Version": "2022-06-28",
@@ -57,6 +61,9 @@ async function fetchNotionApi(database: string, body: any): Promise<any> {
       filter: body,
       ...dataBody,
     };
+  }
+  if (startCursor) {
+    dataBody.start_cursor = startCursor;
   }
   const response = await fetchWithTimeout(endpoint, {
     method: "POST",
@@ -87,17 +94,34 @@ export async function getTags(): Promise<Tags[]> {
   return tags;
 }
 
-export async function getTools(): Promise<WebTools[]> {
-  const pages = await fetchNotionApi(toolsApiKey, null);
-  const tools = pages.results.map((page: any) => {
+/**
+ * Maps the rows of one Notion query response to `WebTools`.
+ *
+ * The same block was duplicated byte-for-byte in `getTools()` and `searchTools()`,
+ * so a property rename had to land twice or the two paths silently diverged.
+ */
+function mapToolPage(page: any): WebTools[] {
+  return page.results.map((row: any) => {
     return {
-      id: page.id,
-      title: page.properties.Name.title[0].text.content,
-      url: page.properties.URL.url,
-      tags: page.properties.Tags.relation.map((tag: any) => tag.id),
-      img: page.properties.Image.url,
+      id: row.id,
+      title: row.properties.Name.title[0].text.content,
+      url: row.properties.URL.url,
+      tags: row.properties.Tags.relation.map((tag: any) => tag.id),
+      img: row.properties.Image.url,
     };
   });
+}
+
+export async function getTools(): Promise<WebTools[]> {
+  const tools: WebTools[] = [];
+  let cursor: string | undefined;
+  // Notion caps page_size at 100, so a single read silently truncates the listing.
+  // Follow has_more and pass next_cursor back as start_cursor to accumulate every page.
+  do {
+    const pages = await fetchNotionApi(toolsApiKey, null, cursor);
+    tools.push(...mapToolPage(pages));
+    cursor = pages.has_more ? pages.next_cursor : undefined;
+  } while (cursor);
   return tools;
 }
 
@@ -127,15 +151,7 @@ export async function searchTools(
     });
   }
   const pages = await fetchNotionApi(toolsApiKey, filter);
-  const tools = pages.results.map((page: any) => {
-    return {
-      id: page.id,
-      title: page.properties.Name.title[0].text.content,
-      url: page.properties.URL.url,
-      tags: page.properties.Tags.relation.map((tag: any) => tag.id),
-      img: page.properties.Image.url,
-    };
-  });
+  const tools = mapToolPage(pages);
 
   return tools;
 }
