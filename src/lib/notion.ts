@@ -39,7 +39,6 @@ async function fetchWithTimeout(
 
 async function fetchNotionApi(
   database: string,
-  body: any,
   startCursor?: string
 ): Promise<any> {
   const headers = new Headers({
@@ -48,7 +47,9 @@ async function fetchNotionApi(
     "Content-Type": "application/json",
   });
   const endpoint = `https://api.notion.com/v1/databases/${database}/query`;
-  let dataBody: any = {
+  // `sorts` stays even though the client re-sorts: it keeps the feed deterministic and
+  // gives `getTags()` a stable order, which has no client-side pipeline of its own.
+  const dataBody: any = {
     sorts: [
       {
         property: "Name",
@@ -56,12 +57,6 @@ async function fetchNotionApi(
       },
     ],
   };
-  if (body) {
-    dataBody = {
-      filter: body,
-      ...dataBody,
-    };
-  }
   if (startCursor) {
     dataBody.start_cursor = startCursor;
   }
@@ -77,7 +72,7 @@ async function fetchNotionApi(
 }
 
 export async function getTags(): Promise<Tags[]> {
-  const pages = await fetchNotionApi(tagsApiKey, null);
+  const pages = await fetchNotionApi(tagsApiKey);
   const tags = pages.results
     .map((page: any) => {
       return {
@@ -118,7 +113,7 @@ export async function getTools(): Promise<WebTools[]> {
   // Notion caps page_size at 100, so a single read silently truncates the listing.
   // Follow has_more and pass next_cursor back as start_cursor to accumulate every page.
   do {
-    const pages = await fetchNotionApi(toolsApiKey, null, cursor);
+    const pages = await fetchNotionApi(toolsApiKey, cursor);
     tools.push(...mapToolPage(pages));
     cursor = pages.has_more ? pages.next_cursor : undefined;
   } while (cursor);

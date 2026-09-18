@@ -19,7 +19,9 @@ export default function SortControl({ direction, onToggle }: Props) {
     <button
       type="button"
       className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1 rounded-full py-0.5 ps-2.5 pe-1 text-xs font-medium",
+        // `ms-2` and not a `gap` on the toolbar row: the dropdown button and the input
+        // are a joined group with flush corners, so a row gap would break that seam.
+        "flex-shrink-0 ms-2 inline-flex items-center gap-1 rounded-full py-0.5 ps-2.5 pe-1 text-xs font-medium",
         "bg-muted text-muted-foreground border border-border",
         "hover:bg-card hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -29,9 +31,6 @@ export default function SortControl({ direction, onToggle }: Props) {
     >
       Name
       <span aria-hidden="true">{isAscending ? "↑" : "↓"}</span>
-      <span className="sr-only">
-        {isAscending ? "ascending" : "descending"}
-      </span>
     </button>
   );
 }
