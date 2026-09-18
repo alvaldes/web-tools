@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro check && astro build",
+    "build": "astro check && astro build && bun run scripts/patch-vercel-runtime.ts",
     "preview": "astro preview",
     "astro": "astro",
     "test": "bun test"
