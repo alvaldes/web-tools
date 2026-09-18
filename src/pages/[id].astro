@@ -1,8 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { getPage, getTags, getBlocks } from "../lib/notion";
-import { colorVariants } from "../lib/utils";
 import ImageWithSkeleton from "../components/ImageWithSkeleton";
+import Tag from "../components/Tag";
 
 interface NotionPage {
   object: string;
@@ -199,18 +199,10 @@ const toolName = tool.properties.Name.title[0].plain_text;
             ></path>
           </svg>
         </a>
-        <div class="flex items-center mt-2.5 mb-5">
+        <div class="flex flex-wrap items-center gap-2 mt-2.5 mb-5">
           {
-            tagsList.length &&
-              tagsList.map((item) => (
-                <span
-                  class={`text-xs font-medium me-2 px-2.5 py-0.5 rounded-full ${
-                    colorVariants[item.color as keyof typeof colorVariants]
-                  }`}
-                >
-                  {item?.name}
-                </span>
-              ))
+            tagsList.length > 0 &&
+              tagsList.map((item) => <Tag id={item.id} tags={tags} />)
           }
         </div>
         <span class="text-pretty">

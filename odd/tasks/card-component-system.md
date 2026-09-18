@@ -171,5 +171,19 @@ on the tint).
 - Card descriptions: needs a `description` field in `WebTools` (backend change).
 - Showing the tool's domain instead of the raw URL in the footer.
 - `toogleDropdown` typo in `Search.tsx` (belongs to the unrelated in-flight change).
-- The detail page (`src/pages/[id].astro`) still renders tags with its own inline
-  markup and `colorVariants` instead of the `Tag` component.
+- The rest of the detail page (`src/pages/[id].astro`) still carries ad-hoc palette classes
+  (`text-gray-400`, `hover:text-white`) instead of the semantic tokens. Only the tag pills
+  and the URL link were migrated; the page as a whole was out of scope for this pass.
+
+## Follow-ups (done after T9)
+
+- The detail page rendered its tags with inline markup plus a direct `colorVariants` lookup.
+  It now renders the shared `Tag` component. Same measured box (20px tall, widths 44/61/78/
+  46/71 unchanged), now with the component's `inline-flex` + `whitespace-nowrap`, and the
+  wrapper moved from `me-2` per pill to an 8px `gap` with `flex-wrap` (measured: 1 row at
+  1440px, 2 rows and 0px overflow at 360px, where the previous `nowrap` could only clip).
+  The `tagsList.length && ...` guard also became a comparison: `0 && x` evaluates to `0`,
+  which Astro renders as a literal "0" in the toolbar of a tool with no tags.
+- The detail page's external URL link used a hardcoded `text-blue-600` (`#2563eb`) at 16px on
+  `--background`, the same defect reported for the card footer one commit earlier:
+  **3.68:1**. It now uses the `--link` token, measured at **7.47:1**.
