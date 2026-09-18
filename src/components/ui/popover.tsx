@@ -25,6 +25,13 @@ import { cn } from "@/lib/utils";
  * wrapper with `absolute top-full mt-2` instead of relying on CSS anchor positioning.
  */
 
+/**
+ * What counts as a panel's first focusable control. Used to place focus when a panel
+ * opens, and for nothing else: Tab is deliberately not trapped (see the focus effect).
+ */
+const FIRST_FOCUSABLE =
+  'input:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
 export interface TriggerProps {
   id: string;
   ref: any;
@@ -57,6 +64,16 @@ export default function Popover({
 }: PopoverProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<any>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // The latest close handler, in a ref rather than in the dependency array: callers pass
+  // it as an inline closure, so its identity changes on every render and the effect below
+  // would tear down and re-add both document listeners each time anything re-rendered
+  // while a panel was open. `isOpen` is the only input that changes what they do.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   // Derived, and deliberately different from the id the consumer puts on its own
   // content element: `aria-controls` has to resolve to the wrapper this primitive
@@ -73,12 +90,12 @@ export default function Popover({
       }
       // Close on the way down, so the panel is gone before the click lands, and never
       // move focus: the pointer already aimed at whatever is underneath.
-      onClose();
+      onCloseRef.current();
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      onClose();
+      onCloseRef.current();
       // Escape must not strand focus inside a panel that is no longer visible.
       triggerRef.current?.focus?.();
     };
@@ -89,7 +106,18 @@ export default function Popover({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, onClose]);
+    // Only `isOpen`: `onClose` is read through the ref above.
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // Focus moves to the panel's first focusable control so a keyboard user lands inside
+    // the panel instead of having to tab in from the trigger. Tab is deliberately NOT
+    // trapped: these popovers are non-modal, and the checkbox list has no chrome of its
+    // own to cycle within, so a trap would fight the browser for no benefit. An empty
+    // panel is left alone rather than focused.
+    panelRef.current?.querySelector<HTMLElement>(FIRST_FOCUSABLE)?.focus();
+  }, [isOpen]);
 
   const triggerProps: TriggerProps = {
     id: labelledBy,
@@ -115,6 +143,7 @@ export default function Popover({
       {trigger(triggerProps)}
       <div
         id={panelId}
+        ref={panelRef}
         data-slot="popover-panel"
         // The HTML `hidden` attribute, not a `hidden` utility: hiding the panel this
         // way takes its checkboxes out of the tab order while it is closed, and the
