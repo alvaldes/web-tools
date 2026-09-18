@@ -1,5 +1,6 @@
 ---
 import Footer from "@/components/Footer.astro";
+import "@/styles/global.css";
 interface Props {
   title: string;
 }
@@ -37,8 +38,9 @@ const { title } = Astro.props;
         --accent-light: #fb77c6;
         --accent-dark: #474f7a;
 
-        /* Semantic tokens consumed through tailwind.config.mjs (bg-card, text-muted-foreground,
-           ring-ring, ...). Dark-only palette: change a value here and the whole app follows. */
+        /* Semantic tokens re-exported as --color-* in src/styles/global.css
+           (bg-card, text-muted-foreground, ring-ring, ...). Dark-only palette:
+           change a value here and the whole app follows. */
         --background: #0f1015;
         --foreground: #f0f0f0;
         --card: #161820;

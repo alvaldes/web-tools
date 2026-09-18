@@ -30,15 +30,15 @@ export function cn(
  * compose with `/15`.
  */
 export const colorVariants = {
-  blue: "bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-400/25",
-  red: "bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/25",
-  pink: "bg-pink-500/15 text-pink-300 ring-1 ring-inset ring-pink-400/25",
-  gray: "bg-gray-500/15 text-gray-300 ring-1 ring-inset ring-gray-400/25",
-  green: "bg-green-500/15 text-green-300 ring-1 ring-inset ring-green-400/25",
-  yellow: "bg-yellow-500/15 text-yellow-300 ring-1 ring-inset ring-yellow-400/25",
-  indigo: "bg-indigo-500/15 text-indigo-300 ring-1 ring-inset ring-indigo-400/25",
-  purple: "bg-purple-500/15 text-purple-300 ring-1 ring-inset ring-purple-400/25",
-  brown: "bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/25",
+  blue: "bg-blue-500/15 text-blue-300 ring-1 inset-ring ring-blue-400/25",
+  red: "bg-red-500/15 text-red-300 ring-1 inset-ring ring-red-400/25",
+  pink: "bg-pink-500/15 text-pink-300 ring-1 inset-ring ring-pink-400/25",
+  gray: "bg-gray-500/15 text-gray-300 ring-1 inset-ring ring-gray-400/25",
+  green: "bg-green-500/15 text-green-300 ring-1 inset-ring ring-green-400/25",
+  yellow: "bg-yellow-500/15 text-yellow-300 ring-1 inset-ring ring-yellow-400/25",
+  indigo: "bg-indigo-500/15 text-indigo-300 ring-1 inset-ring ring-indigo-400/25",
+  purple: "bg-purple-500/15 text-purple-300 ring-1 inset-ring ring-purple-400/25",
+  brown: "bg-amber-500/15 text-amber-300 ring-1 inset-ring ring-amber-400/25",
 };
 
 export type TagCategory = {
