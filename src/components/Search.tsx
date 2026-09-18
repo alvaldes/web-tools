@@ -209,7 +209,11 @@ const Search: FunctionalComponent = () => {
                 placeholder={placeholder}
                 disabled={isLoading}
                 value={searchFilter}
-                onChange={(e: any) => setSearchFilter(e.target?.value ?? "")}
+                // `onInput`, not `onChange`: Preact core binds `onChange` to the native
+                // `change` event, which a text input only fires on blur. With `onChange`
+                // the grid kept showing stale results until you clicked somewhere else,
+                // which is exactly the defect this pipeline was meant to remove.
+                onInput={(e: any) => setSearchFilter(e.target?.value ?? "")}
               />
               <button
                 type="submit"
