@@ -1,9 +1,10 @@
-// `bun-types` is not installed and the hardening constraints forbid adding any dependency,
-// so `astro check` cannot resolve this specifier even though `bun test` runs it. The
-// directive goes away if the type declarations are ever installed.
-// @ts-expect-error -- types for the "bun:test" specifier are not available without bun-types.
+// Run by `bun test`. `bun-types` is not installed and this project takes no test dependency, so
+// the specifier below has no declarations. `@ts-ignore` rather than `@ts-expect-error`:
+// the latter fails the type check if the directives ever become resolvable, which would turn
+// a future dependency install into a broken build for no reason.
+// @ts-ignore -- "bun:test" has no type declarations without bun-types.
 import { describe, expect, test } from "bun:test";
-import type { NotionPage, NotionQueryResponse } from "./notionRows";
+import type { NotionPage, NotionQueryResponse } from "@/lib/notionRows";
 import {
   collectTags,
   collectTools,
@@ -15,7 +16,7 @@ import {
   readRichText,
   readTitle,
   readUrl,
-} from "./notionRows";
+} from "@/lib/notionRows";
 
 function page(id: string, properties: Record<string, unknown>): NotionPage {
   return { id, properties };

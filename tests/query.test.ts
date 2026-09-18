@@ -1,7 +1,8 @@
-// `bun-types` is not installed and the hardening constraints forbid adding any dependency,
-// so `astro check` cannot resolve this specifier even though `bun test` runs it. The
-// directive goes away if the type declarations are ever installed.
-// @ts-expect-error -- types for the "bun:test" specifier are not available without bun-types.
+// Run by `bun test`. `bun-types` is not installed and this project takes no test dependency, so
+// the specifier below has no declarations. `@ts-ignore` rather than `@ts-expect-error`:
+// the latter fails the type check if the directives ever become resolvable, which would turn
+// a future dependency install into a broken build for no reason.
+// @ts-ignore -- "bun:test" has no type declarations without bun-types.
 import { describe, expect, test } from "bun:test";
 import {
   countToolsByTag,
@@ -9,9 +10,9 @@ import {
   groupTagsByCategory,
   normalize,
   sortTools,
-} from "./query";
-import type { Tags } from "./notion";
-import type { TagCategory } from "./utils";
+} from "@/lib/query";
+import type { Tags } from "@/lib/notion";
+import type { TagCategory } from "@/lib/utils";
 
 /** A tool row with only the fields a case cares about spelled out. */
 function tool(id: string, title: string, url: string, tags: string[] = []) {
