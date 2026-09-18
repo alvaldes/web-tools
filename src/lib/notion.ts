@@ -90,6 +90,19 @@ async function fetchNotionApi(
 }
 
 /**
+ * Names every page the mapper had to skip.
+ *
+ * The mapping is deliberately non-fatal, so this warning is the only place a broken row
+ * becomes visible: without it a malformed tool would vanish from the listing in silence,
+ * which is half of how the "no results" bug stayed invisible.
+ */
+function warnSkippedRows(kind: string, skippedIds: string[]): void {
+  for (const id of skippedIds) {
+    console.warn(`Skipping malformed Notion ${kind} row: ${id}`);
+  }
+}
+
+/**
  * Every tag the catalog holds, minus the retired ones.
  *
  * The mapping and the guards live in `notionRows.ts`, which is pure: the previous version
@@ -97,9 +110,18 @@ async function fetchNotionApi(
  * the whole catalog with it.
  */
 export async function getTags(): Promise<Tags[]> {
-  const response = await fetchNotionApi(tagsApiKey);
-  const { rows } = collectTags(response);
-  return rows.filter((tag) => !isDeprecatedTagName(tag.name));
+  const tags: Tags[] = [];
+  let cursor: string | undefined;
+  // The same cap and the same loop as `getTools()`: the catalog used to be read from one
+  // Notion page, so tag 101 would have been dropped without a word.
+  do {
+    const response = await fetchNotionApi(tagsApiKey, cursor);
+    const { rows, skippedIds } = collectTags(response);
+    warnSkippedRows("tag", skippedIds);
+    tags.push(...rows.filter((tag) => !isDeprecatedTagName(tag.name)));
+    cursor = nextCursor(response);
+  } while (cursor);
+  return tags;
 }
 
 export async function getTools(): Promise<WebTools[]> {
@@ -110,7 +132,9 @@ export async function getTools(): Promise<WebTools[]> {
   // on a page that reports more results without a cursor.
   do {
     const response = await fetchNotionApi(toolsApiKey, cursor);
-    tools.push(...collectTools(response).rows);
+    const { rows, skippedIds } = collectTools(response);
+    warnSkippedRows("tool", skippedIds);
+    tools.push(...rows);
     cursor = nextCursor(response);
   } while (cursor);
   return tools;
