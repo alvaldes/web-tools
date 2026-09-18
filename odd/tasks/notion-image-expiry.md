@@ -1,6 +1,6 @@
 # Feature: Resolve Notion-Hosted Image URLs
 
-Status: complete, except the Notion data fix (I8), which the integration's permissions block
+Status: complete
 Branch: `fix/notion-image-expiry`
 Baseline: `main` at `3aa5785`, `bun test` 67 pass / 0 fail.
 
@@ -101,7 +101,7 @@ every request**:
 | I5 | `src/lib/notion.ts`: `resolveImageUrl(url, children?)`, `notionHeaders`, resolution inside `getTools()`. | `ea44bc0` |
 | I6 | `src/pages/[id].astro`: cover through `resolveImageUrl`, and D4 closed. | `94adbb9` |
 | I7 | Verification below. | this commit |
-| I8 | **Blocked.** The Notion data fix needs a capability this integration does not have; see Pending. | — |
+| I8 | Notion data fix: the `Image` value of the fffuel page rewritten through the API with a write-capable token. | this commit |
 
 ## Verification evidence
 
@@ -155,16 +155,27 @@ stored value and says so.
   incremental edit; `astro check` reports 0 errors and the two call sites are `[id].astro` and the
   two API routes, which only `await` the result.
 
-## Pending: the `Image` value in Notion
+## Resolved: the `Image` value in Notion
 
-`PATCH /v1/pages/3de3e763-a1f3-8111-8828-ea83d71723bb` answers
-**403 `restricted_resource` — "Insufficient permissions for this endpoint"**: the integration is
-read-only, so the stored value could not be rewritten by API as approved. Nothing is broken by
-this, because the resolver reads the expired `tok` payload and works today; what remains is the
-hygiene of not keeping an expired credential in the source of truth.
+The read-only integration the app uses (`PUBLIC_NOTION_KEY`) could not write — its `PATCH` answers
+**403 `restricted_resource`** — so the rewrite was done on 2026-09-18 with a separate, write-capable
+token (integration **`Pi`**, `3de3e763-a1f3-8186-9dd8-00279284e836`), kept only in the project's
+gitignored `.env` as `NOTION_WRITE_KEY`. That token is for maintenance, never for the app: the
+application is read-only by design and no source file references `NOTION_WRITE_KEY`.
 
-Once the integration's **Update content** capability is on, the value to store is the same file
-with the record named and no token — the expiring `?tok=` replaced by `?id=<block>&table=block`,
+| | Before | After |
+| --- | --- | --- |
+| host | `img.notionusercontent.com` | `app.notion.com` |
+| credential in the value | `?tok=<JWT>`, expired 2026-09-17T22:54:23Z | **none** |
+| length | 698 | 431 |
+| how the record is named | inside the token payload | `?id=<block>&table=block` |
+
+Verified after the write: the page and `/api/tools.json` still render `/api/img/<blockId>`, and that
+route still answers **200** with byte-identical 2 286 299 bytes — so the app resolves the new value
+through the explicit `id`/`table` pair rather than through the token it no longer has.
+
+The value stored is the same file with the record named and no token — the expiring `?tok=` replaced
+by `?id=<block>&table=block`,
 and the four image-worker render parameters (`variantMode`, `variantParams`, `cb`,
 `isFromImgWorker`) dropped, because the stored value describes the file, not one rendering of it:
 
