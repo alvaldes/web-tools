@@ -1,3 +1,12 @@
+import {
+  collectTags,
+  collectTools,
+  isDeprecatedTagName,
+  nextCursor,
+} from "./notionRows";
+// Type-only: the value import above is the single runtime edge to the mapper.
+import type { NotionQueryResponse } from "./notionRows";
+
 export type WebTools = {
   id: string;
   title: string;
@@ -37,14 +46,28 @@ async function fetchWithTimeout(
   }
 }
 
-async function fetchNotionApi(database: string, body: any): Promise<any> {
+/**
+ * Request body of a Notion database query.
+ *
+ * `sorts` stays even though the client re-sorts: it keeps the feed deterministic and
+ * gives `getTags()` a stable order, which has no client-side pipeline of its own.
+ */
+interface NotionQueryRequest {
+  sorts: Array<{ property: string; direction: "ascending" | "descending" }>;
+  start_cursor?: string;
+}
+
+async function fetchNotionApi(
+  database: string,
+  startCursor?: string,
+): Promise<NotionQueryResponse> {
   const headers = new Headers({
     Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
     "Notion-Version": "2022-06-28",
     "Content-Type": "application/json",
   });
   const endpoint = `https://api.notion.com/v1/databases/${database}/query`;
-  let dataBody: any = {
+  const dataBody: NotionQueryRequest = {
     sorts: [
       {
         property: "Name",
@@ -52,11 +75,8 @@ async function fetchNotionApi(database: string, body: any): Promise<any> {
       },
     ],
   };
-  if (body) {
-    dataBody = {
-      filter: body,
-      ...dataBody,
-    };
+  if (startCursor) {
+    dataBody.start_cursor = startCursor;
   }
   const response = await fetchWithTimeout(endpoint, {
     method: "POST",
@@ -69,74 +89,54 @@ async function fetchNotionApi(database: string, body: any): Promise<any> {
   return response.json();
 }
 
+/**
+ * Names every page the mapper had to skip.
+ *
+ * The mapping is deliberately non-fatal, so this warning is the only place a broken row
+ * becomes visible: without it a malformed tool would vanish from the listing in silence,
+ * which is half of how the "no results" bug stayed invisible.
+ */
+function warnSkippedRows(kind: string, skippedIds: string[]): void {
+  for (const id of skippedIds) {
+    console.warn(`Skipping malformed Notion ${kind} row: ${id}`);
+  }
+}
+
+/**
+ * Every tag the catalog holds, minus the retired ones.
+ *
+ * The mapping and the guards live in `notionRows.ts`, which is pure: the previous version
+ * read `properties.Name.title[0].text.content` here, so one nameless tag threw and took
+ * the whole catalog with it.
+ */
 export async function getTags(): Promise<Tags[]> {
-  const pages = await fetchNotionApi(tagsApiKey, null);
-  const tags = pages.results
-    .map((page: any) => {
-      return {
-        id: page.id,
-        name: page.properties.Name.title[0].text.content,
-        color: page.properties.Color.rich_text[0].plain_text,
-      };
-    })
-    .filter((tag: Tags) => {
-      // Filter out deprecated tags
-      const name = tag.name.toLowerCase();
-      return !name.includes('deprecated') && !name.includes('(old)');
-    });
+  const tags: Tags[] = [];
+  let cursor: string | undefined;
+  // The same cap and the same loop as `getTools()`: the catalog used to be read from one
+  // Notion page, so tag 101 would have been dropped without a word.
+  do {
+    const response = await fetchNotionApi(tagsApiKey, cursor);
+    const { rows, skippedIds } = collectTags(response);
+    warnSkippedRows("tag", skippedIds);
+    tags.push(...rows.filter((tag) => !isDeprecatedTagName(tag.name)));
+    cursor = nextCursor(response);
+  } while (cursor);
   return tags;
 }
 
 export async function getTools(): Promise<WebTools[]> {
-  const pages = await fetchNotionApi(toolsApiKey, null);
-  const tools = pages.results.map((page: any) => {
-    return {
-      id: page.id,
-      title: page.properties.Name.title[0].text.content,
-      url: page.properties.URL.url,
-      tags: page.properties.Tags.relation.map((tag: any) => tag.id),
-      img: page.properties.Image.url,
-    };
-  });
-  return tools;
-}
-
-export async function searchTools(
-  tags: string[],
-  query: string
-): Promise<WebTools[]> {
-  let filter: any = {
-    and: [
-      {
-        property: "Name",
-        rich_text: {
-          contains: query,
-        },
-      },
-    ],
-  };
-  if (tags.length > 0) {
-    const draft = tags.map((item) => ({
-      property: "Tags",
-      relation: {
-        contains: item,
-      },
-    }));
-    filter.and.push({
-      or: draft,
-    });
-  }
-  const pages = await fetchNotionApi(toolsApiKey, filter);
-  const tools = pages.results.map((page: any) => {
-    return {
-      id: page.id,
-      title: page.properties.Name.title[0].text.content,
-      url: page.properties.URL.url,
-      tags: page.properties.Tags.relation.map((tag: any) => tag.id),
-      img: page.properties.Image.url,
-    };
-  });
-
+  const tools: WebTools[] = [];
+  let cursor: string | undefined;
+  // Notion caps page_size at 100, so a single read silently truncates the listing.
+  // Follow `has_more` through `nextCursor`, which also refuses to end the loop quietly
+  // on a page that reports more results without a cursor.
+  do {
+    const response = await fetchNotionApi(toolsApiKey, cursor);
+    const { rows, skippedIds } = collectTools(response);
+    warnSkippedRows("tool", skippedIds);
+    tools.push(...rows);
+    cursor = nextCursor(response);
+  } while (cursor);
   return tools;
 }
 
@@ -177,7 +177,6 @@ export async function getBlocks(id: string) {
 export default {
   getTags,
   getTools,
-  searchTools,
   getPage,
   getBlocks,
 };

@@ -64,3 +64,11 @@ export const tagCategories: TagCategory[] = [
     tags: ["tutorial", "cheatsheet", "resource"],
   },
 ];
+
+/**
+ * Heading of the final filter group, which collects every tag no category above names.
+ *
+ * It lives here so the taxonomy copy stays in one file, and it is typed as the group
+ * label rather than as a category because it holds whatever the data adds later.
+ */
+export const otherTagCategory = "Otros";

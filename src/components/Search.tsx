@@ -1,285 +1,228 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { type Tags, type WebTools } from "@/lib/notion";
-import { tagCategories } from "@/lib/utils";
-import Filter from "./Filter";
+import { filterTools, sortTools, type SortDirection } from "@/lib/query";
+import {
+  isDefaultSearchState,
+  parseSearchState,
+  searchStateToQuery,
+  type SearchState,
+} from "@/lib/urlState";
 import type { FunctionalComponent } from "preact";
 import Gallery from "./Gallery";
+import SearchToolbar from "./SearchToolbar";
 
 const Search: FunctionalComponent = () => {
-  const [isDropOpen, setIsDropOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isToolLoading, setIsToolLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [tools, setTools] = useState<WebTools[]>([]);
   const [tags, setTags] = useState<Tags[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [searchFilter, setSearchFilter] = useState<string>("");
-  const [placeholder, setPlaceholder] = useState("Search");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  const toogleDropdown = () => {
-    setIsDropOpen(!isDropOpen);
+  // The catalog the loaded tags define, held in a ref so the `popstate` listener --
+  // registered once on mount -- can validate a link's tag ids against the latest
+  // catalog without being torn down and re-added every time the tags change.
+  const knownTagIdsRef = useRef<ReadonlySet<string>>(new Set());
+
+  // The catalog is fetched once and then only used to resolve tag ids to names, so the
+  // map is built here instead of on every keystroke.
+  const tagsById = useMemo(
+    () => new Map(tags.map((tag) => [tag.id, tag] as const)),
+    [tags],
+  );
+
+  // Filtering and sorting are pure functions in `lib/query`, so every interaction is
+  // derived from state and no round trip is needed to see the result.
+  const results = useMemo(
+    () =>
+      sortTools(
+        filterTools(tools, categoryFilter, searchFilter, tagsById),
+        sortDirection,
+      ),
+    [tools, categoryFilter, searchFilter, tagsById, sortDirection],
+  );
+
+  /**
+   * Writes a state to the address bar.
+   *
+   * A pristine search drops the query string entirely rather than leaving a bare `?`;
+   * `isDefaultSearchState` is the single place that decision is made.
+   */
+  const writeUrl = (state: SearchState, mode: "push" | "replace") => {
+    const { pathname, hash } = window.location;
+    const url = isDefaultSearchState(state)
+      ? `${pathname}${hash}`
+      : `${pathname}?${searchStateToQuery(state)}${hash}`;
+    if (mode === "push") {
+      window.history.pushState(null, "", url);
+    } else {
+      window.history.replaceState(null, "", url);
+    }
   };
 
-  const selectCategory = (tag: Tags) => {
-    if (categoryFilter.includes(tag.id)) {
-      let draft: Set<string> = new Set(categoryFilter);
+  /** Pushes a parsed state into the component, without writing anything back. */
+  const applySearchState = (state: SearchState) => {
+    setSearchFilter(state.query);
+    setCategoryFilter(state.tagIds);
+    setSortDirection(state.sort);
+  };
+
+  // Every write below happens inside a change handler and never in an effect. An effect
+  // that mirrored state into the URL would re-run on the write it caused, and with a
+  // `popstate` listener applying the URL back into state the two would ping-pong.
+  // Handlers run once per real user action, so the loop cannot start.
+  const updateSearch = (value: string) => {
+    setSearchFilter(value);
+    // Typing is continuous: `pushState` would leave one history entry per keystroke, so
+    // the current entry is rewritten and Back skips the typing.
+    writeUrl(
+      { query: value, tagIds: categoryFilter, sort: sortDirection },
+      "replace",
+    );
+  };
+
+  const toggleTag = (tag: Tags) => {
+    const draft: Set<string> = new Set(categoryFilter);
+    if (draft.has(tag.id)) {
       draft.delete(tag.id);
-      setCategoryFilter([...draft]);
     } else {
-      let draft: Set<string> = new Set([...categoryFilter, tag.id]);
-      setCategoryFilter([...draft]);
+      draft.add(tag.id);
     }
+    const tagIds = [...draft];
+    setCategoryFilter(tagIds);
+    // A toggle is a discrete action, so it pushes an entry and Back undoes it.
+    writeUrl({ query: searchFilter, tagIds, sort: sortDirection }, "push");
   };
 
   const removeFilter = (id: string) => {
-    let draft: Set<string> = new Set(categoryFilter);
-    draft.delete(id);
-    setCategoryFilter([...draft]);
+    const tagIds = categoryFilter.filter((tagId) => tagId !== id);
+    setCategoryFilter(tagIds);
+    // Discrete as well: removing a chip is undone by Back, not overwritten.
+    writeUrl({ query: searchFilter, tagIds, sort: sortDirection }, "push");
   };
 
-  const search = async (e: any) => {
-    e.preventDefault();
-    setIsLoading(true);
-    let draft = await fetch("/api/tools.json", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        tags: categoryFilter,
-        query: searchFilter,
-      }),
-    }).then((res) => res.json());
-    setTools(draft);
-    setIsToolLoading(false);
-    setIsLoading(false);
+  const changeSortDirection = (direction: SortDirection) => {
+    setSortDirection(direction);
+    writeUrl(
+      { query: searchFilter, tagIds: categoryFilter, sort: direction },
+      "push",
+    );
   };
 
-  const handleResize = () => {
-    if (window.innerWidth <= 550) {
-      setPlaceholder("Search Colors, News...");
-    } else {
-      setPlaceholder("Search Colors, News, Designs, and more...");
-    }
-  };
-
-  const fetchTools = async () => {
+  // One implementation for both the mount effect and the error block's retry button, so
+  // a retry cannot drift from the first load.
+  const loadCatalog = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/tools.json", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tags: [],
-          query: "",
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+      setLoadError(null);
+      const [toolsResponse, tagsResponse] = await Promise.all([
+        fetch("/api/tools.json", { method: "GET" }),
+        fetch("/api/tags.json", { method: "GET" }),
+      ]);
+      if (!toolsResponse.ok) {
+        throw new Error(`HTTP error! status: ${toolsResponse.status}`);
       }
-      const data = await res.json();
-      setTools(data);
+      if (!tagsResponse.ok) {
+        throw new Error(`HTTP error! status: ${tagsResponse.status}`);
+      }
+      const [toolsData, tagsData] = await Promise.all([
+        toolsResponse.json(),
+        tagsResponse.json(),
+      ]);
+      setTools(toolsData);
+      setTags(tagsData);
+      // The URL is read only once the catalog is in, because validating a tag id needs
+      // the ids that were just fetched: parsing on mount could not tell a live tag from
+      // a stale one. Nothing can race this read -- the field and both popover triggers
+      // stay disabled until loading finishes, so there is no user input to lose.
+      const knownTagIds = new Set<string>(
+        tagsData.map((tag: Tags) => tag.id),
+      );
+      knownTagIdsRef.current = knownTagIds;
+      applySearchState(parseSearchState(window.location.search, knownTagIds));
     } catch (e) {
+      // The error object still goes to the console for diagnosis, but the user gets a
+      // message: without this state a transport failure rendered the very same "No
+      // results" as a successful load that matched nothing.
       console.error(e);
+      setLoadError(
+        "We couldn't load the tools. Check your connection and try again.",
+      );
     } finally {
-      setIsToolLoading(false);
-    }
-  };
-
-  const fetchTags = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/tags.json", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const data = await res.json();
-      setTags(data);
-    } catch (e) {
-      console.error(e);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTools();
-    fetchTags();
-    window.addEventListener("resize", handleResize);
-    handleResize();
-    return () => window.removeEventListener("resize", handleResize);
+    loadCatalog();
+    // Runs once on mount. A retry goes through the error block's own button instead of
+    // depending on this effect re-running.
   }, []);
 
   useEffect(() => {
-    if (tags.length > 0 && !isToolLoading) {
-      setIsLoading(false);
-    }
-  }, [tags, isToolLoading]);
+    const handlePopState = () => {
+      // The URL is the source of truth on entry and here, and only here: a Back or
+      // Forward press is applied to the component and nothing is written back, so the
+      // restored state cannot echo itself into history.
+      applySearchState(
+        parseSearchState(window.location.search, knownTagIdsRef.current),
+      );
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // The error block replaces the toolbar and the gallery outright. The empty state is
+  // rendered by `Gallery`, so not mounting it is exactly what keeps "the load failed"
+  // and "the load succeeded and matched nothing" from looking identical. The framing
+  // matches the form's, so the switch between the two does not shift the layout.
+  if (loadError !== null) {
+    return (
+      <section>
+        <div
+          role="alert"
+          className="w-[90%] sm:w-[80%] mt-8 mb-4 mx-auto rounded-xl border border-border bg-card p-6 text-center"
+        >
+          <p className="text-sm text-muted-foreground">{loadError}</p>
+          <button
+            type="button"
+            className="mt-4 inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={loadCatalog}
+          >
+            Try again
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <>
-      {isDropOpen && (
-        <button
-          className="fixed inset-0 z-10 bg-black opacity-50 cursor-default"
-          onClick={() => setIsDropOpen(false)}
-          aria-label="Close dropdown"
-          type="button"
-        ></button>
-      )}
-      <section>
-        <form className="w-[90%] sm:w-[80%] mt-8 mb-4 mx-auto">
-          <div className="flex">
-            <label
-              htmlFor="search-dropdown"
-              className="mb-2 text-sm font-medium text-foreground sr-only"
-            >
-              Search
-            </label>
-            <button
-              id="dropdown-button"
-              disabled={tags.length == 0 || isLoading}
-              className={`flex-shrink-0 z-20 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center border rounded-s-lg rounded-e-none focus:ring-2 focus:outline-none bg-muted focus:ring-ring text-foreground border-border ${
-                tags.length == 0 || isLoading
-                  ? "cursor-wait"
-                  : "cursor-pointer hover:bg-card"
-              }`}
-              type="button"
-              onClick={toogleDropdown}
-            >
-              All Categories{" "}
-              <svg
-                className="w-2.5 h-2.5 ms-2.5"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 10 6"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="m1 1 4 4 4-4"
-                ></path>
-              </svg>
-            </button>
-            <div
-              id="dropdown"
-              className={`absolute mt-12 z-20 ${
-                isDropOpen ? "" : `hidden`
-              } bg-popover divide-y divide-border rounded-lg shadow-lg w-56 max-h-96 overflow-y-auto`}
-            >
-              {tagCategories.map((category) => {
-                const categoryTags = tags.filter((tag) =>
-                  category.tags.includes(tag.name.toLowerCase())
-                );
-                if (categoryTags.length === 0) return null;
-                return (
-                  <div key={category.name}>
-                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      {category.name}
-                    </div>
-                    <ul className="py-1 text-sm">
-                      {categoryTags.map((tag) => (
-                        <li key={tag.id}>
-                          <button
-                            type="button"
-                            className="inline-flex w-full items-center px-4 py-2 hover:bg-muted hover:text-foreground cursor-pointer"
-                            onClick={() => selectCategory(tag)}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={categoryFilter.includes(tag.id)}
-                              className="mr-2 my-auto"
-                            />
-                            {tag.name}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="relative w-full">
-              <input
-                type="text"
-                id="search-dropdown"
-                className={`block p-2.5 pr-12 w-full z-20 text-sm rounded-s-none rounded-e-lg border-s-2 border focus:ring-ring focus:border-ring focus:ring-2 focus:outline-none bg-muted border-s-border border-border placeholder:text-muted-foreground text-foreground ${
-                  isLoading ? "cursor-wait" : "cursor-text"
-                }`}
-                placeholder={placeholder}
-                required
-                disabled={isLoading}
-                value={searchFilter}
-                onChange={(e: any) => setSearchFilter(e.target?.value ?? "")}
-              />
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={(e) => search(e)}
-                className={`absolute top-0 end-0 p-2.5 text-sm font-medium h-full text-primary-foreground rounded-e-lg border focus:ring-2 focus:outline-none ${
-                  isLoading
-                    ? "border-border bg-card cursor-wait"
-                    : "border-transparent bg-primary hover:brightness-110 focus:ring-ring cursor-pointer"
-                }`}
-              >
-                {isLoading ? (
-                  <svg
-                    aria-hidden="true"
-                    className="inline w-4 h-4 text-muted-foreground animate-spin [&>path:first-child]:opacity-25"
-                    viewBox="0 0 100 101"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                      fill="currentColor"
-                    />
-                    <path
-                      d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-4 h-4"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
-                    ></path>
-                  </svg>
-                )}
-                <span className="sr-only">Search</span>
-              </button>
-            </div>
-          </div>
-          <div className="mt-2 flex gap-2 flex-wrap">
-            {categoryFilter.map((filter) => (
-              <Filter
-                id={filter}
-                tags={tags}
-                removeFilter={removeFilter}
-                key={filter}
-              />
-            ))}
-          </div>
-        </form>
-        <Gallery tools={tools} isLoading={isLoading} tags={tags} />
-      </section>
-    </>
+    <section>
+      {/*
+        The form stays even though nothing is submitted: with no `<form>` a text input
+        has no implicit submission to cancel, and Enter would be free to propagate.
+      */}
+      <form
+        className="w-[90%] sm:w-[80%] mt-8 mb-4 mx-auto"
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <SearchToolbar
+          tools={tools}
+          tags={tags}
+          isLoading={isLoading}
+          searchFilter={searchFilter}
+          onSearchInput={updateSearch}
+          selectedTagIds={categoryFilter}
+          onToggleTag={toggleTag}
+          onRemoveFilter={removeFilter}
+          sortDirection={sortDirection}
+          onSortDirectionChange={changeSortDirection}
+          resultCount={results.length}
+        />
+      </form>
+      <Gallery tools={results} isLoading={isLoading} tags={tags} />
+    </section>
   );
 };
 

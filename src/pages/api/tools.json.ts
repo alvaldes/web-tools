@@ -1,25 +1,9 @@
-import { getTools, searchTools } from "@/lib/notion";
+import { getTools } from "@/lib/notion";
 import type { APIRoute } from "astro";
 
-export const POST: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async () => {
   try {
-    const requestBody = await request.json();
-    const { tags, query } = requestBody;
-
-    let res = undefined;
-
-    if (tags.length > 0 || query != "") {
-      res = await searchTools(tags, query);
-    } else {
-      res = await getTools();
-    }
-
-    if (!res) {
-      return new Response(null, {
-        status: 404,
-        statusText: "Not found",
-      });
-    }
+    const res = await getTools();
 
     return new Response(JSON.stringify(res), {
       status: 200,
@@ -28,6 +12,8 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
   } catch (error) {
+    // The read is either a full listing or a failure: an empty array is a successful
+    // read of nothing, and a transport failure is a 500, never a 404.
     console.error("Error processing request:", error);
     return new Response(null, {
       status: 500,

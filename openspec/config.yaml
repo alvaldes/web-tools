@@ -3,10 +3,15 @@ context: |
   web-tools is a Node.js/TypeScript ESM project.
   Detected markers: package.json, tsconfig.json, bun package manager.
   Package managers: bun.
-  No reliable test runner was detected; verify testing manually before enabling strict TDD.
-  Unit tests: none.
-  Integration tests: none.
-  E2E tests: none.
+  Test runner: `bun test`, Bun's built-in runner, no dependency.
+  Suites live in tests/**.
+  Unit tests: tests/query.test.ts, tests/notionRows.test.ts,
+  tests/urlState.test.ts.
+  Integration tests: none. E2E tests: none — island behaviour is verified
+  by driving the built page in a browser session, not by a runner.
+  Lint and format: deliberately not configured; this project takes no
+  tooling dependency.
+  Strict TDD remains off: a runner is not a strict-TDD workflow.
 rules:
   proposal:
     require_problem_statement: true
@@ -17,21 +22,21 @@ rules:
   tasks:
     protect_review_workload: true
   apply:
-    test_command: ""
+    test_command: "bun test"
   verify:
-    test_command: ""
+    test_command: "bun test"
 testing:
   detected: "2026-09-17"
   runner:
-    command: ""
-    framework: ""
+    command: "bun test"
+    framework: "bun:test"
   layers:
-    unit: ""
+    unit: "tests/**"
     integration: ""
     e2e: ""
   commands:
     unit:
-      []
+      - "bun test"
     integration:
       []
     e2e:
@@ -44,9 +49,9 @@ quality:
   lint: ""
   lint_commands:
     []
-  typecheck: ""
+  typecheck: "bun run astro check"
   typecheck_commands:
-    []
+    - "bun run astro check"
   format: ""
   format_commands:
     []
