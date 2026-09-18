@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX as PreactJSX } from "preact";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,7 +36,7 @@ type DivProps = PlainProps<HTMLDivElement>;
  * Signals are not used in this project.
  */
 type PlainProps<T extends EventTarget> = Omit<
-  JSX.HTMLAttributes<T>,
+  PreactJSX.HTMLAttributes<T>,
   "class" | "className" | "size"
 > & {
   class?: string;

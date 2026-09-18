@@ -12,7 +12,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@astrojs/check": "0.5.4",
+    "@astrojs/check": "0.9.10",
     "@astrojs/preact": "6.0.5",
     "@astrojs/vercel": "11.0.10",
     "@tailwindcss/vite": "4.3.3",
@@ -20,6 +20,6 @@
     "astro": "7.3.3",
     "preact": "10.29.8",
     "tailwindcss": "4.3.3",
-    "typescript": "5.3.3"
+    "typescript": "6.0.3"
   }
 }
