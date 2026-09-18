@@ -1,11 +1,12 @@
 # Feature: Search Toolbar (client-side query pipeline + sort)
 
-Status: implemented; 4 work-unit commits on `feat/search-toolbar`; awaiting a browser-level interaction check
+Status: implemented and verified; 6 work-unit commits on `feat/search-toolbar`
 Branch: `feat/search-toolbar` (branched from `main`)
 Verification: `bun run astro check` → 0 errors, 0 warnings, 0 hints (green after every commit and at HEAD).
 `bun run build` → success. Live `GET /api/tools.json` → 200, 16 rows, every row with `id`,
 `title`, `url`, `img` and a `tags` array. `GET /api/tags.json` → 200, 21 tags. `GET /` → 200
-with exactly one Preact island and no remaining `POST` wiring.
+with exactly one Preact island and no remaining `POST` wiring. Browser interaction
+matrix: **10 PASS / 0 FAIL / 1 N/A** in a real Chromium session.
 
 ## Problem
 
@@ -89,6 +90,8 @@ Rejected alternatives:
 | T3 | `src/components/Search.tsx` + `Gallery.tsx`: wire the island to the client-side pipeline; live filtering, working Enter, page reset on result change, derived pagination instead of `totalItems` state. | `f17fc4c` |
 | T4 | Sort control wired to the pipeline: a `Name ↑` chip whose click inverts the direction. | `f17fc4c` |
 | T5 | Verification and cleanup: `astro check` green, live endpoint probe, independent `query.ts` assertions, and the orphaned `fetchNotionApi` argument plus the sort chip seam. | `762bfdb`, results below |
+| T6 | Browser interaction pass over the manual matrix, driven with the globally installed Playwright. No project dependency was added. | results below |
+| T7 | Fix the defect the browser pass exposed: the search filtered on blur, not while typing. | `3d1759f` |
 
 ## Verification evidence
 
@@ -103,23 +106,40 @@ The defect 2 in the Problem section was confirmed as pre-existing: selecting a c
 mutated state without re-querying. `categoryFilter` is now a `useMemo` dependency, so the
 chip and the grid can no longer disagree.
 
-### Manual verification matrix
+### Browser interaction matrix — executed
+
+Driven by `chromium.launch()` from the globally installed Playwright against `bun run dev` on
+a free port. The driver lives in `/tmp`; no dependency was added to the project.
 
 | Case | Expected | Result |
 | --- | --- | --- |
-| Load | 16 tools, page 1, `Name A→Z` | Data verified over HTTP (16 rows, all fields present); page 1 and `asc` are the declared initial state. Render not observed. |
-| Type `svg` | grid narrows while typing, no submit | `results` recomputes from `searchFilter`; not observed in a browser. |
-| Press Enter | no navigation, current results kept | The form now has `onSubmit` → `preventDefault()`, replacing the input's `required` attribute. Not observed in a browser. |
-| Toggle a category checkbox | results update immediately, chip appears | Live through the `useMemo` dependency; not observed in a browser. |
-| Remove a chip | results widen immediately | Same path; not observed in a browser. |
-| Click the sort chip | order inverts, returns to page 1 | Inversion proven by probe (`desc` is exactly the reverse of `asc`). Page reset is the effect keyed on the result array. |
-| Search while on page 2 | page returns to 1, never an empty grid | Reset effect plus `safePage` clamp; not observed in a browser. |
-| Search `café` vs `cafe` | both match the same row | **PASS** — identical id sets in the probe. |
-| No matches | empty state | **PASS** — the probe returns `[]`, which drives the existing empty state. |
+| Load | 16 tools, page 1, `Name A→Z` | **PASS** — 8 cards (8 per page), "Showing 1 to 8 of 16 Entries" |
+| Type without blurring | grid narrows as you type | **PASS** — `svg` → 7 results with the field still focused, no submit |
+| No round trip per interaction | zero API calls | **PASS** — 0 `/api/` requests across a query change and a sort toggle; the run's only API calls are the two initial `GET`s |
+| Press Enter | no navigation, results kept | **PASS** — URL unchanged, the 5 filtered results still shown |
+| Toggle a category checkbox | results update immediately, chip appears | **PASS** — tag "Color" → 1 chip, total 9, matching the 9 tools that carry it |
+| Remove a chip | results widen immediately | **PASS** — chip gone, total back to 16 |
+| Click the sort chip | order inverts, returns to page 1 | **PASS** — the 16 titles ascending, reversed, are exactly the 16 descending; paginator back to "Showing 1 to 8"; chip `Name ↑` → `Name ↓` |
+| Search while on page 2 | page returns to 1, never an empty grid | **PASS** — "Showing 9 to 16 of 16" → "Showing 1 to 8 of 9" |
+| Search `café` vs `cafe` | both match the same row | **N/A in the browser** — none of the 16 titles carries a diacritic. Still covered by the pure-function probe |
+| No matches | empty state | **PASS** — 1 empty-state node, 0 cards, no paginator |
+| Console health | no errors | **PASS** — no `pageerror`, no console errors |
 
-**Known gap: no row above was exercised in a real browser.** The pure pipeline is verified
-by execution and the wiring is verified by `astro check` and review, but nothing has
-clicked a control. That is the one thing a reviewer cannot get from this document.
+### Defect the browser pass exposed (fixed in `3d1759f`)
+
+The search field was wired with `onChange`. **Preact core binds `onChange` to the native
+`change` event, which a text input only fires on blur.** React's `onChange`→`input` alias is
+a `preact/compat` convenience and this project runs plain Preact. Filling the field updated
+its value but left the paginator at "of 16 Entries"; results only moved once focus left the
+field. The client pipeline's entire premise — filter as you type — was not happening.
+
+No pure-function probe could have caught this, because the pure functions were always
+correct. Only driving the DOM did. This is the single strongest argument for the browser
+pass existing at all, and it is why the earlier "verified except the browser" state was not
+actually a verification of the feature.
+
+Fixed by binding `onInput`. The one `<select>` in `Pagination.tsx` keeps `onChange`, where
+the native `change` event is the correct one and was left untouched.
 
 ## Follow-ups (not in this change)
 
@@ -138,7 +158,14 @@ clicked a control. That is the one thing a reviewer cannot get from this documen
    available through the package manager, so enabling a runner would turn the 17 ad-hoc
    probe assertions into permanent regression coverage. This is a new project capability
    and needs a user decision rather than an assumption.
-7. Etapa B, the Notion-style toolbar: one row holding the input, a filter popover driven by
+7. **The open dropdown scrims the whole page.** `isDropOpen` renders a `fixed inset-0`
+   translucent button as the outside-click catcher, so the chips, the search field and the
+   sort chip are all unclickable while it is open. The browser pass had to close the
+   dropdown before it could click the chip it had just created.
+8. **The open panel covers its own trigger.** The panel is `absolute mt-12` with no
+   positioned ancestor, so it lands over the `#dropdown-button` that opened it. Re-clicking
+   the trigger to close does not work; only the scrim or a tag click does.
+9. Etapa B, the Notion-style toolbar: one row holding the input, a filter popover driven by
    the data instead of a whitelist, the sort chip, and the active chips.
 
 ## Notion-style toolbar: what was taken and what was left
