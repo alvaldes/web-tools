@@ -30,12 +30,74 @@ export function normalize(value: string): string {
 }
 
 /**
+ * Fuzzy match score inspired by fzf.
+ *
+ * Returns a score > 0 when the needle fuzzy-matches the haystack, or -1 when it
+ * doesn't. Scoring rules:
+ *   - Consecutive matches get a bonus (3 pts each)
+ *   - Match at the start of a word gets a bonus (5 pts)
+ *   - Exact case match gets a small bonus (1 pt)
+ *   - Each matched character gets 1 pt base
+ *
+ * The needle chars must appear in order in the haystack, but not necessarily
+ * consecutively. "svr" matches "SVG Repo" (S..V..R).
+ */
+export function fuzzyScore(needle: string, haystack: string): number {
+  if (needle.length === 0) return 0;
+  if (needle.length > haystack.length) return -1;
+
+  const nLen = needle.length;
+  const hLen = haystack.length;
+  let nIdx = 0;
+  let hIdx = 0;
+  let score = 0;
+  let prevMatched = false;
+
+  while (nIdx < nLen && hIdx < hLen) {
+    if (needle[nIdx] === haystack[hIdx]) {
+      score += 1; // base point per match
+
+      // Consecutive match bonus
+      if (prevMatched) score += 3;
+
+      // Start-of-word bonus (after space, hyphen, or at start)
+      if (hIdx === 0 || haystack[hIdx - 1] === " " || haystack[hIdx - 1] === "-") {
+        score += 5;
+      }
+
+      // Exact case match bonus
+      if (needle[nIdx] === haystack[hIdx]) score += 1;
+
+      prevMatched = true;
+      nIdx++;
+    } else {
+      prevMatched = false;
+    }
+    hIdx++;
+  }
+
+  // All needle chars found?
+  return nIdx === nLen ? score : -1;
+}
+
+/**
+ * Normalized version of fuzzyScore for accent-insensitive matching.
+ */
+export function fuzzyMatch(query: string, text: string): number {
+  return fuzzyScore(normalize(query), normalize(text));
+}
+
+/**
  * Keeps the tools that match both the tag selection and the text query.
  *
  * A tool matches the tag selection when it carries **any** of the selected tag ids.
  * That preserves the current server behaviour, where the Notion filter built an `or`
  * over the selected tags rather than an `and`, so switching the pipeline to the client
  * does not quietly change what the chips mean.
+ *
+ * When the query is non-empty, every tool gets a fuzzy score against title, URL,
+ * and tag names. Only tools with a score > 0 pass. The caller sorts by score
+ * to get fzf-like relevance ordering.
  */
 export function filterTools(
   tools: WebTools[],
@@ -43,7 +105,7 @@ export function filterTools(
   query: string,
   tagsById: Map<string, Tags>,
 ): WebTools[] {
-  const needle = normalize(query);
+  const needle = query.trim();
   return tools.filter((tool) => {
     if (
       selectedTagIds.length > 0 &&
@@ -52,12 +114,10 @@ export function filterTools(
       return false;
     }
     if (needle === "") return true;
-    const fields = [
-      tool.title,
-      tool.url,
-      ...tool.tags.map((tagId) => tagsById.get(tagId)?.name ?? ""),
-    ];
-    return fields.some((field) => normalize(field).includes(needle));
+    const tagNames = tool.tags.map((tagId) => tagsById.get(tagId)?.name ?? "");
+    return fuzzyMatch(needle, tool.title) > 0 ||
+      fuzzyMatch(needle, tool.url) > 0 ||
+      tagNames.some((name) => fuzzyMatch(needle, name) > 0);
   });
 }
 
@@ -70,7 +130,9 @@ const nameCollator = new Intl.Collator("es", {
   numeric: true,
 });
 
-/** Returns a new array ordered by title, leaving the input untouched. */
+/**
+ * Sort by title (alphabetical), leaving the input untouched.
+ */
 export function sortTools(
   tools: WebTools[],
   direction: SortDirection,
@@ -79,6 +141,36 @@ export function sortTools(
   return [...tools].sort(
     (a, b) => sign * nameCollator.compare(a.title, b.title),
   );
+}
+
+/**
+ * Sort by fuzzy relevance score (descending), then title as tiebreaker.
+ * Used when a search query is active.
+ */
+export function sortByRelevance(
+  tools: WebTools[],
+  query: string,
+  tagsById: Map<string, Tags>,
+): WebTools[] {
+  if (!query.trim()) return tools;
+  return [...tools].sort((a, b) => {
+    const tagNamesA = a.tags.map((id) => tagsById.get(id)?.name ?? "");
+    const tagNamesB = b.tags.map((id) => tagsById.get(id)?.name ?? "");
+
+    const scoreA = Math.max(
+      fuzzyMatch(query, a.title),
+      fuzzyMatch(query, a.url),
+      ...tagNamesA.map((n) => fuzzyMatch(query, n)),
+    );
+    const scoreB = Math.max(
+      fuzzyMatch(query, b.title),
+      fuzzyMatch(query, b.url),
+      ...tagNamesB.map((n) => fuzzyMatch(query, n)),
+    );
+
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return nameCollator.compare(a.title, b.title);
+  });
 }
 
 /** One selectable row of the filter panel. */

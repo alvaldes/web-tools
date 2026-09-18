@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { type Tags, type WebTools } from "@/lib/notion";
-import { filterTools, sortTools, type SortDirection } from "@/lib/query";
+import { filterTools, sortTools, sortByRelevance, type SortDirection } from "@/lib/query";
 import {
   isDefaultSearchState,
   parseSearchState,
@@ -34,14 +34,15 @@ const Search: FunctionalComponent = () => {
 
   // Filtering and sorting are pure functions in `lib/query`, so every interaction is
   // derived from state and no round trip is needed to see the result.
-  const results = useMemo(
-    () =>
-      sortTools(
-        filterTools(tools, categoryFilter, searchFilter, tagsById),
-        sortDirection,
-      ),
-    [tools, categoryFilter, searchFilter, tagsById, sortDirection],
-  );
+  // When a search query is active, results are sorted by fuzzy relevance score.
+  // When no query, results are sorted alphabetically.
+  const results = useMemo(() => {
+    const filtered = filterTools(tools, categoryFilter, searchFilter, tagsById);
+    if (searchFilter.trim()) {
+      return sortByRelevance(filtered, searchFilter, tagsById);
+    }
+    return sortTools(filtered, sortDirection);
+  }, [tools, categoryFilter, searchFilter, tagsById, sortDirection]);
 
   /**
    * Writes a state to the address bar.

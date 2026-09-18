@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { getPage, getTags, getBlocks } from "../lib/notion";
+import { imageSource } from "../lib/notionImages";
 import ImageWithSkeleton from "../components/ImageWithSkeleton";
 import Tag from "../components/Tag";
 
@@ -86,6 +87,13 @@ const tagsList = tool.properties.Tags.relation.flatMap((t: any) =>
   tags.filter((x) => x.id === t.id)
 );
 const toolName = tool.properties.Name.title[0].plain_text;
+
+// A Notion-hosted cover is stored as a URL that cannot be loaded by a browser as-is, so it is
+// re-addressed to the app's own image route: a stable address, because the render path needs the
+// cover's identity and nothing more. `blocks` is already in hand, which is also what lets a value
+// carrying only a storage location be matched back to its block. An absent property renders no
+// cover at all instead of throwing outside the guarded block above.
+const imageUrl = imageSource(tool.properties.Image?.url ?? "", blocks);
 ---
 
 <Layout title="ωεβ Τσφδ">
@@ -165,14 +173,18 @@ const toolName = tool.properties.Name.title[0].plain_text;
       <span></span>
     </nav>
     <section class="py-0 px-4 md:pt-6">
-      <picture class="w-full p-4 md:p-0 md:w-5/12 h-auto float-right ml-6 mb-4">
-        <ImageWithSkeleton
-          src={tool.properties.Image.url}
-          alt={`Cover of ${id}`}
-          className="object-cover w-full h-64 rounded-md"
-          client:load
-        />
-      </picture>
+      {
+        imageUrl && (
+          <picture class="w-full p-4 md:p-0 md:w-5/12 h-auto float-right ml-6 mb-4">
+            <ImageWithSkeleton
+              src={imageUrl}
+              alt={`Cover of ${id}`}
+              className="object-cover w-full h-64 rounded-md"
+              client:load
+            />
+          </picture>
+        )
+      }
       <div class="clear-right inline gap-2">
         <h1 class="text-2xl font-bold text-balance">
           {toolName}

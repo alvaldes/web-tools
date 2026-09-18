@@ -27,6 +27,14 @@ const toolsApiKey = import.meta.env.PUBLIC_NOTION_TOOLS_DATABASE_ID;
 /** Default timeout for Notion API requests. */
 const NOTION_TIMEOUT_MS = 15_000;
 
+/** The credential every Notion API call in this module carries. */
+function notionHeaders(): Headers {
+  return new Headers({
+    Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
+    "Notion-Version": "2022-06-28",
+  });
+}
+
 /**
  * Thin wrapper around fetch that aborts after NOTION_TIMEOUT_MS.
  * The raw Notion calls had no timeout, so a slow or unreachable endpoint would
@@ -61,11 +69,8 @@ async function fetchNotionApi(
   database: string,
   startCursor?: string,
 ): Promise<NotionQueryResponse> {
-  const headers = new Headers({
-    Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
-    "Notion-Version": "2022-06-28",
-    "Content-Type": "application/json",
-  });
+  const headers = notionHeaders();
+  headers.set("Content-Type", "application/json");
   const endpoint = `https://api.notion.com/v1/databases/${database}/query`;
   const dataBody: NotionQueryRequest = {
     sorts: [
@@ -145,10 +150,7 @@ export async function getPage(id: string) {
     `https://api.notion.com/v1/pages/${id}`,
     {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
-        "Notion-Version": "2022-06-28",
-      },
+      headers: notionHeaders(),
     },
   );
   if (!response.ok) {
@@ -162,10 +164,27 @@ export async function getBlocks(id: string) {
     `https://api.notion.com/v1/blocks/${id}/children?page_size=100`,
     {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
-        "Notion-Version": "2022-06-28",
-      },
+      headers: notionHeaders(),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Notion API request failed: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * `GET /v1/blocks/<id>`, which answers for a page id as well as for a block id.
+ *
+ * Exported for the image route, which is the one place that reads a record to serve bytes. The
+ * render path never calls it: a stored URL already names its record, so the page needs no read.
+ */
+export async function getBlockRecord(id: string): Promise<unknown> {
+  const response = await fetchWithTimeout(
+    `https://api.notion.com/v1/blocks/${id}`,
+    {
+      method: "GET",
+      headers: notionHeaders(),
     },
   );
   if (!response.ok) {
@@ -179,4 +198,5 @@ export default {
   getTools,
   getPage,
   getBlocks,
+  getBlockRecord,
 };
