@@ -1,3 +1,12 @@
+import {
+  collectTags,
+  collectTools,
+  isDeprecatedTagName,
+  nextCursor,
+} from "./notionRows";
+// Type-only: the value import above is the single runtime edge to the mapper.
+import type { NotionQueryResponse } from "./notionRows";
+
 export type WebTools = {
   id: string;
   title: string;
@@ -37,19 +46,28 @@ async function fetchWithTimeout(
   }
 }
 
+/**
+ * Request body of a Notion database query.
+ *
+ * `sorts` stays even though the client re-sorts: it keeps the feed deterministic and
+ * gives `getTags()` a stable order, which has no client-side pipeline of its own.
+ */
+interface NotionQueryRequest {
+  sorts: Array<{ property: string; direction: "ascending" | "descending" }>;
+  start_cursor?: string;
+}
+
 async function fetchNotionApi(
   database: string,
-  startCursor?: string
-): Promise<any> {
+  startCursor?: string,
+): Promise<NotionQueryResponse> {
   const headers = new Headers({
     Authorization: `Bearer ${import.meta.env.PUBLIC_NOTION_KEY}`,
     "Notion-Version": "2022-06-28",
     "Content-Type": "application/json",
   });
   const endpoint = `https://api.notion.com/v1/databases/${database}/query`;
-  // `sorts` stays even though the client re-sorts: it keeps the feed deterministic and
-  // gives `getTags()` a stable order, which has no client-side pipeline of its own.
-  const dataBody: any = {
+  const dataBody: NotionQueryRequest = {
     sorts: [
       {
         property: "Name",
@@ -71,51 +89,29 @@ async function fetchNotionApi(
   return response.json();
 }
 
-export async function getTags(): Promise<Tags[]> {
-  const pages = await fetchNotionApi(tagsApiKey);
-  const tags = pages.results
-    .map((page: any) => {
-      return {
-        id: page.id,
-        name: page.properties.Name.title[0].text.content,
-        color: page.properties.Color.rich_text[0].plain_text,
-      };
-    })
-    .filter((tag: Tags) => {
-      // Filter out deprecated tags
-      const name = tag.name.toLowerCase();
-      return !name.includes('deprecated') && !name.includes('(old)');
-    });
-  return tags;
-}
-
 /**
- * Maps the rows of one Notion query response to `WebTools`.
+ * Every tag the catalog holds, minus the retired ones.
  *
- * The same block used to be duplicated byte-for-byte in each caller, so a property
- * rename had to land twice or the paths silently diverged.
+ * The mapping and the guards live in `notionRows.ts`, which is pure: the previous version
+ * read `properties.Name.title[0].text.content` here, so one nameless tag threw and took
+ * the whole catalog with it.
  */
-function mapToolPage(page: any): WebTools[] {
-  return page.results.map((row: any) => {
-    return {
-      id: row.id,
-      title: row.properties.Name.title[0].text.content,
-      url: row.properties.URL.url,
-      tags: row.properties.Tags.relation.map((tag: any) => tag.id),
-      img: row.properties.Image.url,
-    };
-  });
+export async function getTags(): Promise<Tags[]> {
+  const response = await fetchNotionApi(tagsApiKey);
+  const { rows } = collectTags(response);
+  return rows.filter((tag) => !isDeprecatedTagName(tag.name));
 }
 
 export async function getTools(): Promise<WebTools[]> {
   const tools: WebTools[] = [];
   let cursor: string | undefined;
   // Notion caps page_size at 100, so a single read silently truncates the listing.
-  // Follow has_more and pass next_cursor back as start_cursor to accumulate every page.
+  // Follow `has_more` through `nextCursor`, which also refuses to end the loop quietly
+  // on a page that reports more results without a cursor.
   do {
-    const pages = await fetchNotionApi(toolsApiKey, cursor);
-    tools.push(...mapToolPage(pages));
-    cursor = pages.has_more ? pages.next_cursor : undefined;
+    const response = await fetchNotionApi(toolsApiKey, cursor);
+    tools.push(...collectTools(response).rows);
+    cursor = nextCursor(response);
   } while (cursor);
   return tools;
 }
