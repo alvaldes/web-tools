@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 import type { Tags, WebTools } from "@/lib/notion";
 import ImageWithSkeleton from "./ImageWithSkeleton";
 import ToolCard, { ToolCardSkeleton } from "./ToolCard";
@@ -68,7 +68,7 @@ const Gallery = ({ tools, isLoading, tags }: Props) => {
     if (!hasMore || !sentinelRef.current) return;
 
     // Kill any previous trigger first
-    ScrollTrigger.getAll().forEach((t) => t.kill());
+    ScrollTrigger.getAll().forEach((trigger: ReturnType<typeof ScrollTrigger.create>) => trigger.kill());
 
     const trigger = ScrollTrigger.create({
       trigger: sentinelRef.current,
