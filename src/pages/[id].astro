@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { getPage, getTags, getBlocks, resolveImageUrl } from "../lib/notion";
+import { getPage, getTags, getBlocks } from "../lib/notion";
+import { imageSource } from "../lib/notionImages";
 import ImageWithSkeleton from "../components/ImageWithSkeleton";
 import Tag from "../components/Tag";
 
@@ -87,12 +88,12 @@ const tagsList = tool.properties.Tags.relation.flatMap((t: any) =>
 );
 const toolName = tool.properties.Name.title[0].plain_text;
 
-// A Notion-hosted cover is stored as a URL whose token expires, so it is re-addressed through
-// the API. `blocks` is already in hand, which is also what lets a value carrying only a
-// storage location be matched back to its block. `resolveImageUrl` never throws, so a Notion
-// failure here leaves the page standing with the stored value; an absent property now renders
-// no cover at all instead of throwing outside the guarded block above.
-const imageUrl = await resolveImageUrl(tool.properties.Image?.url ?? "", blocks);
+// A Notion-hosted cover is stored as a URL that cannot be loaded by a browser as-is, so it is
+// re-addressed to the app's own image route: a stable address, because the render path needs the
+// cover's identity and nothing more. `blocks` is already in hand, which is also what lets a value
+// carrying only a storage location be matched back to its block. An absent property renders no
+// cover at all instead of throwing outside the guarded block above.
+const imageUrl = imageSource(tool.properties.Image?.url ?? "", blocks);
 ---
 
 <Layout title="ωεβ Τσφδ">

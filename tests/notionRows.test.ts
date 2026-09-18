@@ -22,6 +22,13 @@ function page(id: string, properties: Record<string, unknown>): NotionPage {
   return { id, properties };
 }
 
+/**
+ * The real value that broke the fffuel cover: an in-app copy link whose `tok` is what names the
+ * record. Kept verbatim rather than trimmed, because the whole parse is what is under test.
+ */
+const NOTION_IMAGE_URL =
+  "https://img.notionusercontent.com/s3/prod-files-secure%2Fdf8ced50-ccac-401e-a48e-182b5498d7f4%2F890a4431-e325-472b-8aa8-ace1942d28d9%2FCleanShot_2026-09-17_at_4.32.37_PM2x.png/size/w=790?tok=eyJhbGciOiJFUzI1NiIsImtpZCI6IlI3dzVrRnREIiwidHlwIjoiSldUIn0.eyJzcGFjZUlkIjoiZGY4Y2VkNTAtY2NhYy00MDFlLWE0OGUtMTgyYjU0OThkN2Y0IiwiZmlsZUlkIjoiODkwYTQ0MzEtZTMyNS00NzJiLThhYTgtYWNlMTk0MmQyOGQ5IiwiYWN0b3IiOiJub3Rpb25fdXNlcjplZGVmMTViYS1jMjdkLTQyNjctODQ3MS02MzAzNjMzZDI2ZDEiLCJyZWNvcmQiOiJibG9jazozZGUzZTc2My1hMWYzLTgwMDktYjU3OC1kYzQ1MGEzZmI1NTciLCJleHAiOjE3ODk2ODU2NjN9.W5QlXEeEzEUlwTPKr3Uj_5dBRBscX8GedGBr24PFezqTCnWdBWq6GROf8EjEuHjfsIJ-mrHe3E-BJ72GsAHb0Q";
+
 /** A `title`/`rich_text` payload: Notion always carries both text shapes. */
 function textProp(...values: string[]) {
   return {
@@ -122,6 +129,15 @@ describe("mapToolRow", () => {
       tags: ["tag-1", "tag-2"],
       img: "https://img.example.com/figma.png",
     });
+  });
+
+  test("re-addresses a Notion-hosted image to the app's own route", () => {
+    const row = toolPage("t1", "fffuel", "https://fffuel.co", {
+      Image: { url: NOTION_IMAGE_URL },
+    });
+    expect(mapToolRow(row)?.img).toBe(
+      "/api/img/3de3e763-a1f3-8009-b578-dc450a3fb557",
+    );
   });
 });
 

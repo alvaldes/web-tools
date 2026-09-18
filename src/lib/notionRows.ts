@@ -9,9 +9,11 @@
  * environment, the network, or `fetch`, so each guard is testable on its own.
  *
  * The types are imported with `import type`, which is erased at compile time: this module
- * has no runtime edge back to `notion.ts`.
+ * has no runtime edge back to `notion.ts`. The one runtime import is the pure image helper,
+ * which reads no environment and performs no I/O.
  */
 import type { Tags, WebTools } from "./notion";
+import { imageSource } from "./notionImages";
 
 /** One row of a Notion database query. */
 export interface NotionPage {
@@ -117,6 +119,10 @@ export function readRelationIds(page: NotionPage, property: string): string[] {
  * identity is its title and its primary action is the url, so a row without either is
  * not a listing entry and is better skipped than rendered as an empty card. `img` is
  * optional and falls back to `""`, because a card without an image still reads.
+ *
+ * `img` goes through `imageSource` rather than being passed along, because a Notion-hosted
+ * value is not an address a browser can load. The rewrite is pure: the id comes out of the
+ * stored URL, and no request is made here.
  */
 export function mapToolRow(page: NotionPage): WebTools | null {
   const title = readTitle(page, "Name");
@@ -128,7 +134,7 @@ export function mapToolRow(page: NotionPage): WebTools | null {
     title,
     url,
     tags: readRelationIds(page, "Tags"),
-    img: readUrl(page, "Image"),
+    img: imageSource(readUrl(page, "Image")),
   };
 }
 
