@@ -48,19 +48,19 @@ export type TagCategory = {
 
 export const tagCategories: TagCategory[] = [
   {
-    name: "Tipo",
+    name: "Type",
     tags: ["color", "svg", "image", "css", "typography", "code", "ai", "dev"],
   },
   {
-    name: "Función",
+    name: "Function",
     tags: ["generator", "converter", "optimizer", "editor", "library", "inspector"],
   },
   {
-    name: "Características",
+    name: "Features",
     tags: ["free", "open source", "no login", "api"],
   },
   {
-    name: "Contenido",
+    name: "Content",
     tags: ["tutorial", "cheatsheet", "resource"],
   },
 ];
@@ -71,4 +71,4 @@ export const tagCategories: TagCategory[] = [
  * It lives here so the taxonomy copy stays in one file, and it is typed as the group
  * label rather than as a category because it holds whatever the data adds later.
  */
-export const otherTagCategory = "Otros";
+export const otherTagCategory = "Other";
