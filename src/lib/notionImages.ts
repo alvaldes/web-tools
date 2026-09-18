@@ -59,8 +59,15 @@ function parseUrl(url: string): URL | null {
   }
 }
 
-function isNotionId(value: string | null | undefined): value is string {
+/** True for a string the Notion API accepts as a record id, dashed or undashed. */
+export function isNotionId(value: string | null | undefined): value is string {
   return typeof value === "string" && NOTION_ID.test(value);
+}
+
+/** A URL with its query string removed, so a `tok` credential never reaches a log line. */
+export function withoutQuery(url: string): string {
+  const cut = url.indexOf("?");
+  return cut === -1 ? url : url.slice(0, cut);
 }
 
 /**
@@ -287,4 +294,37 @@ export function findBlockIdByFileId(payload: unknown, fileId: string): string | 
     if (reference?.kind === "file" && reference.fileId === fileId) return id;
   }
   return null;
+}
+
+/**
+ * The `src` the browser should use for a stored image value.
+ *
+ * A Notion-hosted value becomes the app's own route for the record it names, which is the only
+ * address that stays the same across renders and can therefore be cached. Public URLs are
+ * returned untouched, so the fifteen rows that never had a problem keep costing nothing.
+ *
+ * Nothing here performs I/O: the record id is read straight out of the stored URL, and the API
+ * read that turns it into bytes belongs to the route. That is the difference between this and
+ * resolving per render, where every page view paid a Notion request to translate an id the render
+ * did not need translated.
+ *
+ * `children` is the page's block listing when the caller already has it — the detail page does.
+ * It is the only way to re-address a value that carries just a storage location, because nothing
+ * in it names a record. Without it such a value is kept as-is and reported, since an unresolvable
+ * image is a defect worth seeing rather than a silent grey box.
+ */
+export function imageSource(url: string, children?: unknown): string {
+  if (!isNotionHostedImageUrl(url)) return url;
+  const reference = notionFileReference(url);
+  if (reference && reference.kind !== "file") {
+    return `/api/img/${reference.id}`;
+  }
+  if (reference?.kind === "file" && children) {
+    const blockId = findBlockIdByFileId(children, reference.fileId);
+    if (blockId) return `/api/img/${blockId}`;
+  }
+  console.warn(
+    `Keeping an unresolved Notion-hosted image URL: ${withoutQuery(url)}`,
+  );
+  return url;
 }

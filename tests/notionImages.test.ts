@@ -8,8 +8,11 @@ import type { NotionFileReference } from "@/lib/notionImages";
 import {
   findBlockIdByFileId,
   freshFileUrl,
+  imageSource,
   isNotionHostedImageUrl,
+  isNotionId,
   notionFileReference,
+  withoutQuery,
 } from "@/lib/notionImages";
 
 /**
@@ -226,5 +229,86 @@ describe("findBlockIdByFileId", () => {
   test("answers null for a payload that is not a children listing", () => {
     expect(findBlockIdByFileId({ results: "nope" }, FILE_ID)).toBeNull();
     expect(findBlockIdByFileId(null, FILE_ID)).toBeNull();
+  });
+});
+
+describe("isNotionId", () => {
+  test("accepts a dashed or undashed Notion id", () => {
+    expect(isNotionId(BLOCK_ID)).toBe(true);
+    expect(isNotionId(BLOCK_ID.replaceAll("-", ""))).toBe(true);
+  });
+
+  test("rejects everything else the route could be handed", () => {
+    expect(isNotionId("not-an-id")).toBe(false);
+    expect(isNotionId("")).toBe(false);
+    expect(isNotionId(null)).toBe(false);
+    expect(isNotionId(`${BLOCK_ID}/../../secrets`)).toBe(false);
+  });
+});
+
+describe("withoutQuery", () => {
+  test("drops the query string, so a token cannot reach a log line", () => {
+    expect(withoutQuery(PREVIEW_URL)).toBe(
+      PREVIEW_URL.slice(0, PREVIEW_URL.indexOf("?")),
+    );
+    expect(withoutQuery("https://example.com/a.png")).toBe(
+      "https://example.com/a.png",
+    );
+  });
+});
+
+/** The children listing of a page that holds the fffuel screenshot. */
+function childrenWithTheFile() {
+  return {
+    results: [
+      { id: "paragraph-1", type: "paragraph", paragraph: { rich_text: [] } },
+      {
+        id: BLOCK_ID,
+        type: "image",
+        image: { type: "file", file: { url: PRESIGNED_URL } },
+      },
+    ],
+  };
+}
+
+describe("imageSource", () => {
+  test("addresses a Notion-hosted value through the app's own route", () => {
+    expect(imageSource(PREVIEW_URL)).toBe(`/api/img/${BLOCK_ID}`);
+    expect(imageSource(IN_APP_URL)).toBe(`/api/img/${BLOCK_ID}`);
+  });
+
+  test("re-addresses a bare storage location when the page's blocks are in hand", () => {
+    expect(imageSource(PRESIGNED_URL, childrenWithTheFile())).toBe(
+      `/api/img/${BLOCK_ID}`,
+    );
+  });
+
+  test("keeps a bare storage location when nothing names its record", () => {
+    expect(imageSource(PRESIGNED_URL)).toBe(PRESIGNED_URL);
+    expect(imageSource(PRESIGNED_URL, { results: [] })).toBe(PRESIGNED_URL);
+  });
+
+  test("leaves a public URL alone, so a healthy row costs nothing", () => {
+    const publicUrl = "https://animista.net/animista-media-img.gif";
+    expect(imageSource(publicUrl)).toBe(publicUrl);
+    expect(imageSource("")).toBe("");
+  });
+
+  test("reports an unresolvable value without leaking its token", () => {
+    const warnings: string[] = [];
+    const original = console.warn;
+    console.warn = (...args: unknown[]) => {
+      warnings.push(String(args[0]));
+    };
+    try {
+      expect(imageSource(PRESIGNED_URL)).toBe(PRESIGNED_URL);
+      expect(imageSource("https://www.notion.so/fffuel-1234")).toBe(
+        "https://www.notion.so/fffuel-1234",
+      );
+    } finally {
+      console.warn = original;
+    }
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).not.toContain("X-Amz");
   });
 });
