@@ -51,11 +51,33 @@ Open your browser
   http://localhost:4321/
 ```
 
+## Help Needed
+
+We have tools that need improvement and new tools to add. Check out [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to help!
+
+### Tools to Improve
+
+Some existing tools are missing:
+- **Images** - Better screenshots or icons
+- **Names** - More descriptive or corrected names
+- **Summaries** - Brief descriptions of what the tool does
+- **Main Features** - Key functionality bullets
+
+### Tools to Add
+
+We're looking for contributions of new web tools in these categories:
+- **Design Tools** - Color generators, UI libraries, icon sets
+- **Developer Tools** - Code editors, formatters, converters
+- **SVG & Graphics** - Animation, generation, optimization
+- **CSS Tools** - Animations, generators, frameworks
+
 ## Contributing
 
-Contributions are always welcome!
-
-Just make a PR or contact me for ways to get started.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
+- How to improve existing tools
+- How to add new tools
+- Code contribution guidelines
+- PR process
 
 ## License
 
