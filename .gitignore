@@ -25,3 +25,4 @@ pnpm-debug.log*
 # SDD project configuration lives in openspec/config.yaml and *is* tracked.
 .atl/
 .pi/
+.vercel
